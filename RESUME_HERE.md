@@ -67,6 +67,12 @@ nohup env SAFE_MEM_GB=3 KILL_RSS_GB=5 PSI4_THREADS=8 MIN_DISK_GB=15 \
 ```
 
 **절대 두 서브셋을 동시에 돌리지 않는다.** 그게 이번에 죽은 이유다.
+직렬을 강제하려면 `chain_isol24.sh` 를 쓴다 — 앞 잡의 PID 가 사라질 때까지
+기다렸다가 시작하고, 앞 잡이 MAE 까지 가지 못했으면 시작하지 않고 멈춘다.
+
+```bash
+nohup ./chain_isol24.sh <앞_잡_PID> > logs/chain.log 2>&1 &
+```
 
 ## 서브셋 진행표
 

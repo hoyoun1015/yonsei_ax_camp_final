@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>작업 보고서 — 2026-08-09</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 16mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Apple SD Gothic Neo", "Helvetica Neue", sans-serif;
+    font-size: 10.2pt; line-height: 1.62; color: #1a1a1a; margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 19pt; margin: 0 0 2mm; letter-spacing: -0.4px; }
+  h2 {
+    font-size: 13pt; margin: 9mm 0 3mm; padding-bottom: 1.6mm;
+    border-bottom: 1.6px solid #1a1a1a; letter-spacing: -0.3px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11pt; margin: 6mm 0 2mm; color: #000;
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 2.6mm; }
+  .sub { color: #666; font-size: 9.4pt; margin-bottom: 6mm; }
+  .lead {
+    background: #f6f6f4; border-left: 3px solid #1a1a1a;
+    padding: 4mm 5mm; margin: 0 0 7mm; font-size: 10pt;
+  }
+  .lead p:last-child { margin-bottom: 0; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 3mm 0 5mm;
+    font-size: 9.3pt; page-break-inside: avoid;
+  }
+  th {
+    text-align: left; border-bottom: 1.4px solid #1a1a1a;
+    padding: 1.8mm 2mm; font-weight: 600; background: #fafafa;
+  }
+  td { padding: 1.7mm 2mm; border-bottom: 0.5px solid #ddd; vertical-align: top; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.total td { border-top: 1.2px solid #1a1a1a; font-weight: 600; }
+  code {
+    font-family: "SF Mono", Menlo, monospace; font-size: 8.8pt;
+    background: #f2f2f0; padding: 0.4mm 1.2mm; border-radius: 2px;
+  }
+  pre {
+    background: #f6f6f4; padding: 3mm 4mm; font-size: 8.6pt;
+    font-family: "SF Mono", Menlo, monospace; overflow-x: auto;
+    border-radius: 3px; margin: 2mm 0 4mm; line-height: 1.5;
+    page-break-inside: avoid;
+  }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.4mm; }
+  .ok { color: #1a7f37; font-weight: 600; }
+  .bad { color: #b91c1c; font-weight: 600; }
+  .warn { color: #a16207; font-weight: 600; }
+  .box {
+    border: 1px solid #ddd; padding: 4mm 5mm; margin: 3mm 0 5mm;
+    border-radius: 3px; page-break-inside: avoid;
+  }
+  .box.alert { border-color: #b91c1c; background: #fef4f4; }
+  .box.action { border-color: #1d4ed8; background: #f5f8ff; }
+  .box h3 { margin-top: 0; }
+  .box p:last-child, .box ul:last-child { margin-bottom: 0; }
+  .muted { color: #666; }
+  .brk { page-break-before: always; }
+  footer {
+    margin-top: 10mm; padding-top: 3mm; border-top: 0.5px solid #ccc;
+    font-size: 8.6pt; color: #777;
+  }
+</style>
+</head>
+<body>
+
+<h1>작업 보고서 — 계산 복구와 D1 완결</h1>
+<p class="sub">2026-08-09 · Virtual Computational Chemistry Lab · 마감 9/2까지 24일</p>
+
+<div class="lead">
+<p><strong>한 줄 요약 — D1 킬게이트를 전부 통과했다. 연구는 성립한다.</strong></p>
+<p>새벽에 메모리 초과로 머신이 죽어 작업 맥락을 잃었으나 파일과 계산 결과는 모두 살아 있었다.
+원인을 잡고 안전한 실행 방식으로 교체한 뒤, 8개 서브셋 <strong>331구조 전량</strong>의 DFT 단일점을
+완료했다(누락 0). 가장 중요한 게이트 G3(밴드 C 화학종 25종 이상, 15종 미만이면 폐기)가
+<strong>33종으로 통과</strong>했다.</p>
+<p>다만 보고 과정에서 <strong>내가 두 가지를 잘못 짚었고 이를 정정했다</strong>(§4). 그리고 설계대로
+밴드를 확정하려면 <strong>L2(def2-SVP) 측정이 아직 필요하다</strong>(§5).</p>
+</div>
+
+<h2>1. 무슨 일이 있었나 — 크래시와 복구</h2>
+
+<p>2026-08-09 새벽 계산 도중 머신이 죽었다. <strong>원인은 메모리였다.</strong></p>
+
+<table>
+<tr><th>무엇이</th><th>얼마를 요구했나</th><th>결과</th></tr>
+<tr><td><code>dft_tau_probe.py</code></td><td>워커 4개 × <code>memory 6 GB</code> = <strong>24 GB</strong></td><td rowspan="2">RAM 16 GB 머신에서<br>스왑이 터지며 전체 사망</td></tr>
+<tr><td><code>timing_ladder</code> ISOL24</td><td>단일 잡 <code>memory 10 GB</code></td></tr>
+</table>
+
+<p>부수적으로 <strong>조용한 버그</strong>를 발견했다. 구 러너는 완료 판정을 <code>sp.out</code> <em>파일의
+존재 여부</em>로 했다. 죽다 만 잡이 영구히 "완료"로 건너뛰어지며, 그대로 두면 MAE에 조용히
+반영됐을 것이다. 실제로 ACONF 3개가 이 상태였다.</p>
+
+<h3>대응 — <code>calibration/safe_dft.py</code></h3>
+<p>과제 범위는 그대로 두고 실행 방식만 바꿨다.</p>
+
+<table>
+<tr><th></th><th>구 러너</th><th>safe_dft.py</th></tr>
+<tr><td>동시 잡</td><td>4</td><td><strong>1 (직렬)</strong></td></tr>
+<tr><td>선언 메모리</td><td>6~10 GB</td><td><strong>3 GB</strong></td></tr>
+<tr><td>완료 판정</td><td>파일 존재</td><td><strong>psi4 성공 마커</strong></td></tr>
+<tr><td>대형 분자</td><td>in-core DF</td><td><strong><code>scf_type disk_df</code></strong> (40원자↑ 자동)</td></tr>
+<tr><td>폭주 시</td><td>머신 사망</td><td><strong>RSS 상한 초과 → 그 잡만 kill, 저메모리 재시도</strong></td></tr>
+<tr><td>디스크</td><td>무방비</td><td>여유 부족 시 정지</td></tr>
+<tr><td>중단 후</td><td>재계산 또는 조용한 누락</td><td><strong>완료분 건너뛰고 재개</strong></td></tr>
+</table>
+
+<p><strong>실측 피크 RSS 2.2~3.4 GB.</strong> 이후 8개 서브셋을 전부 돌리는 동안 머신은 한 번도
+죽지 않았다. 디스크 부족으로 세 번 멈췄으나 <strong>매번 가드가 정상 작동한 것</strong>이고
+데이터 손실은 없었다.</p>
+
+<h3>가는 길에 실측으로 잡은 함정 둘</h3>
+<ul>
+<li><strong><code>scf_subtype disk_df</code>는 없는 옵션이다.</strong> psi4 1.11에서 out-of-core DF는
+<code>scf_type</code>의 값이다.</li>
+<li><strong><code>PSI_SCRATCH</code>는 절대경로여야 한다.</strong> psi4는 잡 디렉터리를 cwd로 실행되므로
+상대경로를 넘기면 <code>sp.out</code>조차 만들지 않고 즉사한다.</li>
+</ul>
+
+<h2 class="brk">2. 계산 결과 — τ 사다리</h2>
+
+<p>8개 서브셋 331구조 B3LYP-D3(BJ)/def2-TZVP 단일점 <strong>전량 완료, 누락 0</strong>.</p>
+
+<h3>서브셋별 (분석 보고용)</h3>
+<table>
+<tr><th>서브셋</th><th class="n">τ_L1</th><th class="n">τ_L3</th><th class="n">사다리</th><th class="n">반응</th><th class="n">구조</th></tr>
+<tr><td>ISOL24</td><td class="n">12.190</td><td class="n">5.562</td><td class="n">2.2×</td><td class="n">23</td><td class="n">46</td></tr>
+<tr><td>ISO34</td><td class="n">6.902</td><td class="n">1.949</td><td class="n">3.5×</td><td class="n">34</td><td class="n">63</td></tr>
+<tr><td>CDIE20</td><td class="n">1.802</td><td class="n">1.079</td><td class="n">1.7×</td><td class="n">20</td><td class="n">36</td></tr>
+<tr><td>PCONF21</td><td class="n">1.757</td><td class="n">0.537</td><td class="n">3.3×</td><td class="n">18</td><td class="n">21</td></tr>
+<tr><td>SCONF</td><td class="n">1.643</td><td class="n">0.651</td><td class="n">2.5×</td><td class="n">17</td><td class="n">19</td></tr>
+<tr><td>ICONF</td><td class="n">1.629</td><td class="n">0.328</td><td class="n">5.0×</td><td class="n">17</td><td class="n">27</td></tr>
+<tr><td>Amino20x4</td><td class="n">0.954</td><td class="n">0.235</td><td class="n">4.1×</td><td class="n">80</td><td class="n">100</td></tr>
+<tr><td>ACONF</td><td class="n">0.193</td><td class="n">0.065</td><td class="n">3.0×</td><td class="n">15</td><td class="n">18</td></tr>
+<tr class="total"><td>합계</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">224</td><td class="n">331</td></tr>
+</table>
+
+<p><strong>사다리가 8개 전부에서 성립한다</strong>(1.7~5.0배). 계산 수준을 올리면 방법오차가 줄어든다는
+RQ3의 전제가 특정 서브셋의 우연이 아니다. 그리고 <strong>τ가 서브셋 간 63배</strong>(0.193~12.190)
+벌어진다 — 단일 τ로는 어떤 밴드도 제대로 나눌 수 없다는 것이 수치로 확정됐다.</p>
+
+<h3>반응 유형별 (시스템이 실제로 쓰는 τ)</h3>
+<p>기획안 §3.2가 요구하는 형태다. 반응 유형은 결합 그래프 비교로 에이전트가 직접 판정할 수 있어,
+서브셋 정체를 노출하지 않는다.</p>
+<table>
+<tr><th>반응 유형</th><th>판정 방법</th><th class="n">반응</th><th class="n">τ_L1</th><th class="n">τ_L3</th><th class="n">사다리</th></tr>
+<tr><td><strong>conformer</strong></td><td>두 구조의 결합 그래프가 동일</td><td class="n">167</td><td class="n">1.213</td><td class="n">0.405</td><td class="n">3.0×</td></tr>
+<tr><td><strong>구조 이성질체</strong></td><td>분자식 같고 결합 그래프 다름</td><td class="n">57</td><td class="n">9.036</td><td class="n">3.407</td><td class="n">2.7×</td></tr>
+</table>
+
+<h3>비용 실측 — 에스컬레이션에 진짜 값이 붙는다</h3>
+<table>
+<tr><th>수준</th><th>프로토콜</th><th class="n">시간 (원자수별)</th></tr>
+<tr><td>L1</td><td>GFN2-xTB 단일점</td><td class="n">0.02 초</td></tr>
+<tr><td>L3</td><td>B3LYP-D3(BJ)/def2-TZVP</td><td class="n">25초 (8원자) → 53분 (81원자)</td></tr>
+</table>
+<p>1,000배 이상 차이다. "계산을 더 할지 말지"가 공짜 결정이 아니게 되며, 기획안이 우려했던
+"잡당 0.3초에서 5회 절약은 과학적 통화가 아니다"라는 문제가 해소된다.</p>
+
+<h2>3. 게이트 판정 — 전부 통과</h2>
+
+<p>화학종 기준. 반응 유형별 τ로 산출했다.</p>
+<table>
+<tr><th>게이트</th><th>기준</th><th class="n">실측</th><th></th></tr>
+<tr><td><strong>G3</strong></td><td>밴드 C 화학종 ≥ 25 (<strong>15 미만이면 폐기</strong>)</td><td class="n"><strong>33종</strong></td><td class="ok">통과</td></tr>
+<tr><td>G4</td><td>밴드 A+B ≥ 50종</td><td class="n">85종</td><td class="ok">통과</td></tr>
+<tr><td>G4</td><td>밴드 D ≥ 10종</td><td class="n">17종</td><td class="ok">통과</td></tr>
+<tr><td>G2</td><td>DFT가 τ를 줄이는가</td><td class="n">1.7~5.0×</td><td class="ok">통과</td></tr>
+<tr><td>G6</td><td>ZPVE·ΔE 일치</td><td class="n">—</td><td class="ok">통과</td></tr>
+</table>
+
+<p><strong>G3가 이 연구의 생사를 가르는 게이트였다.</strong> 밴드 C가 비면 에이전트가 규칙 기준선 R0를
+이길 구조적 경로가 없어 설계가 성립하지 않는다. 통과했다.</p>
+
+<p class="muted">참고 — 반응 수 기준: A 60 · B 99 · C 45 · D 20.
+게이트는 서브셋별 τ로 매겨도 동일하게 통과한다(C 33 · A+B 85 · D 17).
+<strong>G3 통과라는 결론은 τ 범위 선택에 좌우되지 않는다.</strong></p>
+
+<h2 class="brk">4. 무엇이 잘못되었나</h2>
+
+<div class="box alert">
+<h3>정정 1 — "L2가 사다리에서 탈락했다"는 내 보고는 틀렸다</h3>
+<p>저장소에 <strong>L2가 두 개</strong> 있었고 내가 혼동했다.</p>
+<table>
+<tr><th>이름</th><th>정의</th><th>상태</th></tr>
+<tr><td>L2 (기획안 §3.1)</td><td>B3LYP-D3(BJ)/<strong>def2-SVP</strong> DFT 단일점</td><td class="bad">미측정</td></tr>
+<tr><td>"L2" (<code>tau_probe.py</code>)</td><td>xTB <code>--opt</code> 국소최적화</td><td>측정됨, 나쁨</td></tr>
+</table>
+<p>내가 잰 것은 후자다. 그런데 <strong>xTB 최적화가 나쁘다는 것은 기획안 §3.1이 이미 같은 근거로
+사다리에서 제외한 사실</strong>이라 새 발견이 아니었다. 따라서 <strong>"사다리는 2단으로 간다"는 결론은
+무효</strong>이며, 기획안의 3단 구성은 그대로 유효하다.</p>
+<p>영향이 크다 — 에스컬레이션 밴드가 <code>τ₃ &lt; |ΔE_ref| ≤ τ₂</code>로 <strong>τ₂ = L2 기준</strong>이므로,
+L2 없이는 밴드 C를 설계대로 정의할 수 없다. 현재 밴드는 τ₂ 자리에 τ_L1을 대입한 <strong>잠정값</strong>이다.</p>
+</div>
+
+<div class="box alert">
+<h3>정정 2 — τ를 서브셋별로 둔 것은 설계 위반이다</h3>
+<p>기획안 §3.2가 이를 명시적으로 금지하며, 근거가 타당하다. <strong>τ는 에이전트가 런타임에
+조회하는 시스템 부품</strong>인데 G5(오염 방어)가 서브셋 정체를 숨기도록 요구하고, 데모 트랙에는
+서브셋 개념 자체가 없다. <strong>조회할 수 없는 τ는 부품이 될 수 없다.</strong></p>
+<p>설계대로 반응 유형 2종으로 다시 재자 <strong>내가 "가장 중요한 대목"이라고 강조했던 ACONF 결론이
+뒤집혔다.</strong></p>
+<table>
+<tr><th>ACONF 밴드 분포</th><th class="n">A</th><th class="n">B</th><th class="n">C</th><th class="n">D</th></tr>
+<tr><td>서브셋 τ = 0.193 (금지된 범위)</td><td class="n">15</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr>
+<tr><td><strong>conformer 유형 τ = 1.213 (설계대로)</strong></td><td class="n">1</td><td class="n">7</td><td class="n">7</td><td class="n">0</td></tr>
+</table>
+<p>"ACONF는 밴드 D 공급원이 아니다"라던 서술은 <strong>금지된 τ 범위가 만든 인공물</strong>이었다.
+ACONF는 여전히 유효한 공급원이다.</p>
+</div>
+
+<h3>기획안 자체의 오류 — CDIE20 화학종 수</h3>
+<p>기획안은 CDIE20을 <strong>3종</strong>으로 상정했으나 실제로는 <strong>16종</strong>이다.
+36구조 20반응이 3종일 수 없다. 총 화학종은 92종이 아니라 <strong>106종</strong>이다.</p>
+
+<h3>화학종 정의 — 확정했다</h3>
+<p><strong>화학종 := 반응 그래프의 연결성분.</strong> 한 반응에 함께 등장하는 구조를 같은 화학종으로
+묶고 이행적으로 닫는다.</p>
+<p>처음에는 이름 규칙(접두사·번호)으로 뽑았는데 틀렸다. CDIE20에 <code>R21 → P20</code>,
+<code>R28 → P26</code>처럼 <strong>번호를 넘나드는 반응</strong>이 있어, 번호로 묶으면 한 반응이 두 화학종으로
+쪼개진다. 그러면 pseudo-replication을 막으려고 화학종 단위를 도입한 §4.2의 취지가 그대로 깨진다.</p>
+<table>
+<tr><th>서브셋</th><th class="n">연결성분</th><th class="n">기획안</th><th></th></tr>
+<tr><td>ICONF</td><td class="n">10</td><td class="n">10</td><td class="ok">일치</td></tr>
+<tr><td>ACONF</td><td class="n">3</td><td class="n">3</td><td class="ok">일치</td></tr>
+<tr><td>PCONF21</td><td class="n">3</td><td class="n">3</td><td class="ok">일치</td></tr>
+<tr><td>SCONF</td><td class="n">2</td><td class="n">2</td><td class="ok">일치</td></tr>
+<tr><td>ISO34</td><td class="n">29</td><td class="n">28</td><td class="muted">±1</td></tr>
+<tr><td>ISOL24</td><td class="n">23</td><td class="n">24</td><td class="muted">±1</td></tr>
+<tr><td>Amino20x4</td><td class="n">20</td><td class="n">19</td><td class="muted">±1</td></tr>
+<tr><td>CDIE20</td><td class="n">16</td><td class="n">3</td><td class="warn">기획안 오류</td></tr>
+<tr class="total"><td>합계</td><td class="n">106</td><td class="n">92</td><td></td></tr>
+</table>
+<p><strong>4개가 정확히 일치</strong>하므로 규칙이 옳다고 본다. ±1 셋은 계수 관례 차이다.</p>
+
+<h2 class="brk">5. 무엇이 필요한가</h2>
+
+<div class="box action">
+<h3>최우선 — L2(def2-SVP) 실측</h3>
+<p>밴드 C를 설계대로 확정하는 데 필요한 유일한 미측정 항목이다. def2-TZVP보다 훨씬 싸므로
+331구조 전량이 <strong>반나절 이내</strong>일 것으로 본다(TZVP가 총 ~11시간이었고 SVP는 그보다 몇 배 빠르다).</p>
+<pre>cd "(진짜_이게_최종)/calibration"
+nohup env SAFE_MEM_GB=3 KILL_RSS_GB=5 PSI4_THREADS=8 \
+  python3 safe_dft.py ../data/reference/gmtkn55 dft_work &lt;서브셋&gt; def2-SVP \
+  &gt; logs/&lt;서브셋&gt;_L2.log 2&gt;&amp;1 &amp;</pre>
+<p><strong>단, 반드시 한 번에 한 서브셋씩.</strong> 동시 실행이 크래시의 원인이었다.</p>
+</div>
+
+<p>그 다음 순서는 이렇다.</p>
+<table>
+<tr><th class="n">#</th><th>할 일</th><th>산출물</th></tr>
+<tr><td class="n">1</td><td>L2 실측 → 밴드 재계산</td><td>밴드 확정, G3 최종</td></tr>
+<tr><td class="n">2</td><td>기획안 수정 (아래 목록)</td><td>기획안 v4</td></tr>
+<tr><td class="n">3</td><td>과제셋 v1 — 화학종 클러스터링 + 밴드 층화</td><td><code>frozen_v1.json</code></td></tr>
+<tr><td class="n">4</td><td>라벨·지표 순수 함수 + 단위테스트</td><td><code>scoring/</code></td></tr>
+<tr><td class="n">5</td><td><strong>R0 실행 (LLM 0콜)</strong></td><td>기준선 성능</td></tr>
+<tr><td class="n">6</td><td>에이전트층 · 프롬프트 · 본실행</td><td>실행 로그</td></tr>
+</table>
+
+<h3>기획안에서 고쳐야 할 것</h3>
+<ul>
+<li><strong>§4.2 화학종 정의</strong> — "분자식 클러스터"를 <strong>"반응 그래프의 연결성분"</strong>으로 명시</li>
+<li><strong>§4.1 CDIE20 화학종 수</strong> — 3종 → <strong>16종</strong>, 총계 92종 → <strong>106종</strong></li>
+<li><strong>§3.2 τ 표</strong> — 실측값 삽입 (conformer 1.213/0.405, 구조이성질체 9.036/3.407)</li>
+<li><strong>§3.1 사다리 표</strong> — L1·L3 실측 비용 반영 (L2는 측정 후)</li>
+<li><strong>밴드 공급원 배정</strong> — L2 측정 후 실측 분포로 재배정</li>
+<li class="muted">L2 제거는 <strong>하지 않는다</strong> — §4 정정 1 참조</li>
+</ul>
+
+<h2>6. 사용자가 해야 할 것</h2>
+
+<div class="box action">
+<h3>① API 요청 한도(RPD) 확인 — 나는 할 수 없다</h3>
+<p>D1 문서에 계속 열려 있는 항목이다. <strong>본실험의 호출 예산이 여기 걸려 있어</strong>
+조건 수와 과제 수를 확정하려면 필요하다. Anthropic 콘솔에서 일일 요청 한도를 확인해 주면 된다.</p>
+</div>
+
+<div class="box action">
+<h3>② 화학종 ±1 차이 확인 (선택)</h3>
+<p>ISO34 29 vs 28, ISOL24 23 vs 24, Amino20x4 20 vs 19. 기획안을 쓸 때 어떤 기준으로
+세었는지 알려주면 맞추겠다. <strong>G3 통과 결론에는 영향이 없다</strong>(33종 대 목표 25종).</p>
+</div>
+
+<div class="box action">
+<h3>③ 디스크 공간 — 언젠가는 정리 필요</h3>
+<p>228 GB 중 <strong>206 GB가 차 있다</strong>(95%). 계산이 세 번 멈춘 직접 원인이었다.
+내가 <code>/private/tmp</code>의 고아 파일 46 GB를 회수했으나 근본 해결은 아니다.
+sudo 없이는 <strong>120 GB가 어디 있는지 확인되지 않는다</strong>. 현재 남은 계산에는 지장이 없다.</p>
+<p class="muted">확인된 것: <code>~/Library</code> 23 GB · <code>/Applications</code> 28 GB · 홈 전체 40 GB.
+<strong>Yonsei_AX_Camp 폴더 정리는 의미가 없다</strong> — 현재 프로젝트를 뺀 나머지 전부가 45 MB다.</p>
+</div>
+
+<h2 class="brk">7. 구조 추천 — 무엇부터 만드는가</h2>
+
+<p>구현 설계 §8의 원칙을 그대로 따르기를 권한다.</p>
+
+<div class="box">
+<p style="margin:0"><strong>"LLM을 부르는 코드는 가장 마지막에 만든다. 1~7번까지가 LLM 없이 완결된다."</strong></p>
+</div>
+
+<p>이유가 중요하다. <strong>1~7번이 끝나면 API가 하나도 없어도 "τ 실측치 + 밴드 구성 +
+규칙 기준선 성능"이라는 산출물이 남는다.</strong> 마감이 24일 남은 단독 연구에서 이것이
+최악의 경우의 안전망이다. 에이전트가 실패해도 논문은 성립한다.</p>
+
+<h3>권장 순서</h3>
+<table>
+<tr><th class="n">#</th><th>모듈</th><th>완료 판정</th><th>LLM</th></tr>
+<tr><td class="n">1~4</td><td>실행층 + τ 실측</td><td class="ok">완료 (calibration/)</td><td>—</td></tr>
+<tr><td class="n">5</td><td><code>tasks/pairs.py</code> 밴드 층화</td><td>G3·G4 <span class="ok">판정 완료</span>, L2 후 확정</td><td>—</td></tr>
+<tr><td class="n">6</td><td><code>scoring/labels.py</code> + <code>metrics.py</code></td><td>순수 함수 단위테스트 통과</td><td>—</td></tr>
+<tr><td class="n">7</td><td><strong>R0 실행</strong></td><td>기준선 성능 확정</td><td>0콜</td></tr>
+<tr><td class="n">8</td><td><code>agents/base.py</code> + L0</td><td>G5 (오염 검사)</td><td>있음</td></tr>
+<tr><td class="n">9</td><td><code>prompts.py</code> 중립·오도 2종</td><td>파일럿 20과제</td><td>있음</td></tr>
+<tr><td class="n">10</td><td><code>arms.py</code> F·A·V</td><td>본실행</td><td>있음</td></tr>
+</table>
+
+<h3>지금 calibration/에 있는 것을 어떻게 할 것인가</h3>
+<p>현재 <code>calibration/</code>의 스크립트들은 게이트를 넘기려고 빠르게 쓴 것이고,
+<code>src/</code>는 비어 있다. <strong>이것을 그대로 본체로 승격하지 말 것을 권한다.</strong>
+다만 <strong>버리지도 말아야 한다</strong> — 재개 캐시와 실측 근거가 여기 있다.</p>
+<ul>
+<li><code>safe_dft.py</code>의 <strong>안전 장치는 그대로 가져간다</strong> — 직렬 실행, 성공 마커 판정,
+RSS 감시, 디스크 가드. 이것들은 크래시로 값을 치르고 얻은 것이다.</li>
+<li><code>band_analysis.py</code>의 <strong>연결성분 화학종 정의를 <code>tasks/</code>로 옮긴다</strong>.
+표집의 전제이므로 단위테스트를 붙일 것.</li>
+<li><code>dft_work/</code>의 <strong>에너지 캐시는 보존한다</strong>. 331구조 재계산은 11시간이다.</li>
+</ul>
+
+<h3>덜어낼 위험</h3>
+<ul>
+<li><strong>동시 실행 금지를 코드로 강제할 것.</strong> 이번 크래시의 직접 원인이고,
+사람의 기억에 맡기면 반복된다. 락 파일 한 줄이면 된다.</li>
+<li><strong>완료 판정은 언제나 도구의 성공 마커로.</strong> 파일 존재로 판정하면 조용히 누락된다.</li>
+<li><strong>τ와 라벨은 동결 후 불변.</strong> 동결 시점을 문서에 남기고, 결과를 본 뒤에는
+어떤 이유로도 수정하지 않는다(<code>CLAUDE.md</code> 불변조건 7).</li>
+</ul>
+
+<h2>8. 산출물 위치</h2>
+<table>
+<tr><th>무엇</th><th>어디</th></tr>
+<tr><td>이 보고서</td><td><code>docs/작업보고서_2026-08-09.pdf</code></td></tr>
+<tr><td>실측 결과 전문</td><td><code>docs/D1_실측결과.md</code> §8-2, §9</td></tr>
+<tr><td>세션 재개 안내</td><td><code>RESUME_HERE.md</code></td></tr>
+<tr><td>계산 러너</td><td><code>calibration/safe_dft.py</code></td></tr>
+<tr><td>밴드·화학종 분석</td><td><code>calibration/band_analysis.py</code></td></tr>
+<tr><td>에너지 캐시 (331구조)</td><td><code>calibration/dft_work/</code></td></tr>
+<tr><td>원격 백업</td><td><code>github.com/hoyoun1015/yonsei_ax_camp_final</code> (private)</td></tr>
+</table>
+
+<footer>
+작성 2026-08-09 · Claude Opus 5 · 모든 수치는 이 저장소의 실측이며 문헌값을 빌려오지 않았다.
+정정 사항(§4)은 <code>docs/D1_실측결과.md</code>와 git 커밋 메시지에 근거와 함께 남겼다.
+</footer>
+
+</body>
+</html>

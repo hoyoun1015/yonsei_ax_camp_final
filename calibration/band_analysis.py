@@ -41,32 +41,40 @@ SUBSETS = ["ISO34", "ISOL24", "Amino20x4", "ICONF", "ACONF", "PCONF21",
            "SCONF", "CDIE20"]
 
 
-def species_of(sub, name):
-    """구조 이름에서 화학종을 뽑는다. 서브셋마다 명명 규칙이 다르다.
+def species_map(rxns):
+    """화학종을 **반응 그래프의 연결성분**으로 정의한다.
 
-    같은 화학종의 서로 다른 배좌/이성질체는 같은 키로 묶여야 한다.
+    한 반응에 함께 등장하는 구조들을 같은 화학종으로 묶고, 그 관계를
+    이행적으로 닫는다. 이 서브셋들의 반응은 전부 같은 화학종의 배좌·이성질체
+    사이의 것이므로, 연결성분이 곧 독립 화학종이다.
+
+    이름 규칙(접두사·번호)으로 뽑던 방식을 폐기하고 이것으로 바꿨다.
+    CDIE20 의 `R21 → P20`, `R28 → P26`, `R57 → P51` 처럼 **번호를 넘나드는
+    반응**이 있어서, 번호로 묶으면 한 반응이 두 화학종으로 쪼개진다.
+    그러면 pseudo-replication 을 막으려고 화학종 단위를 도입한 취지가 깨진다
+    — 같은 분자에서 나온 두 과제가 독립인 것처럼 세어진다.
+
+    연결성분은 서브셋별 명명 규칙을 몰라도 되고, "한 반응에 같이 나오면
+    같은 분자"라는 화학적 사실에만 기댄다.
     """
-    if sub in ("ACONF", "Amino20x4", "ICONF"):
-        # B_G / ALA_xab / H2S2O7_1 — 마지막 밑줄 앞이 분자다.
-        return name.rsplit("_", 1)[0]
-    if sub == "ISOL24":
-        # i12e / i12p — e(반응물)와 p(생성물)가 같은 이성질화 쌍이다.
-        m = re.match(r"(i\d+)[ep]$", name)
-        return m.group(1) if m else name
-    if sub == "PCONF21":
-        # GLY_ab / SER_pII 는 분자별, 숫자 이름들은 한 트리펩타이드의 배좌다.
-        if "_" in name:
-            return name.split("_", 1)[0]
-        return "PCONF21_peptide"
-    if sub == "SCONF":
-        # C1..C15 / G1..G4 — 앞의 알파벳이 당 분자다.
-        m = re.match(r"([A-Za-z]+)", name)
-        return m.group(1) if m else name
-    if sub in ("ISO34", "CDIE20"):
-        # E26/P26, R20/P20 — 앞 글자를 떼면 같은 골격의 짝이 묶인다.
-        m = re.match(r"[A-Za-z]+(\d+)$", name)
-        return m.group(1) if m else name
-    return name
+    parent = {}
+
+    def find(x):
+        parent.setdefault(x, x)
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    for names, _, _ in rxns:
+        for n in names[1:]:
+            union(names[0], n)
+    return {n: find(n) for n in parent}
 
 
 def expand(token):
@@ -170,26 +178,26 @@ def main():
             skipped.append((sub, f"τ_L3 누락 {miss3}개 — 미완결"))
             continue
 
+        smap = species_map(rxns)
         counts = defaultdict(int)
         sp_counts = defaultdict(set)
         for names, coeffs, ref in rxns:
             b = band_of(ref, tau1, tau3)
             counts[b] += 1
             rxn_total[b] += 1
-            for n in names:
-                key = (sub, species_of(sub, n))
-                species_band[b].add(key)
-                sp_counts[b].add(key)
+            # 한 반응의 구성 구조는 전부 같은 연결성분이므로 화학종은 하나다.
+            key = (sub, smap[names[0]])
+            species_band[b].add(key)
+            sp_counts[b].add(key)
 
         sp = "/".join(str(len(sp_counts[b])) for b in "ABCD")
         print(f"{sub:<11} {tau1:>7.3f} {tau3:>7.3f} {len(rxns):>5} "
               f"{counts['A']:>4} {counts['B']:>4} {counts['C']:>4} {counts['D']:>4}   {sp}")
 
-        uniq = {species_of(sub, n) for names, _, _ in rxns for n in names}
+        uniq = set(smap.values())
         exp = EXPECTED_SPECIES.get(sub)
         if exp is not None and len(uniq) != exp:
-            print(f"{'':<11} ⚠ 화학종 {len(uniq)}종 — 기획안 상정 {exp}종과 다르다. "
-                  f"매핑 규칙이나 기획안 수치를 재검토할 것.")
+            print(f"{'':<11} ⚠ 화학종 {len(uniq)}종 — 기획안 상정 {exp}종과 다르다.")
 
     if skipped:
         print("\n제외된 서브셋 (τ 미완결 — 밴드를 매길 수 없다):")

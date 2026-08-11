@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 
 from vccl.agents.backend import Backend, Ledger, read_quota  # noqa: E402
+from vccl.agents import quota_ledger  # noqa: E402
 from vccl.agents.loop import TaskSpec, anonymize, run_task  # noqa: E402
 from vccl.scoring.labels import (  # noqa: E402
     Band, IdentificationMode, Run, Task, Tau, band_of, error_class, is_correct,
@@ -191,6 +192,10 @@ def main():
 
     summ = ledger.summary()
     quota_after = read_quota()
+    # 주간 용량을 별도 측정 없이 추정하기 위해 모든 실행을 누적한다
+    quota_ledger.record(model=args.model, n_calls=summ["n_calls"],
+                        tokens=summ["usage"], before=quota_before, after=quota_after,
+                        seconds=0.0, context=f"pilot/{args.condition}")
     (out_dir / "results.json").write_text(json.dumps(
         {"model": args.model, "condition": args.condition,
          "quota_before": quota_before, "quota_after": quota_after,

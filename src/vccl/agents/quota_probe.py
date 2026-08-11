@@ -33,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 
 from vccl.agents.backend import QUOTA_GROUP, read_quota  # noqa: E402
+from vccl.agents import quota_ledger  # noqa: E402
 
 AGY = str(Path.home() / ".local" / "bin" / "agy")
 
@@ -171,6 +172,10 @@ def main():
               f"(호출당 {consw / args.n:.3f}%p)")
     if cons5 <= 0 and consw <= 0:
         print("  ⚠️ 감소가 관측되지 않았다. N 을 늘려야 백분율 해상도(1%)를 넘는다.")
+
+    quota_ledger.record(model=args.model, n_calls=args.n, tokens=tot,
+                        before=q0, after=q1, seconds=run_s,
+                        context=f"probe/n{args.n}")
 
     out = ROOT / "experiments" / f"quota_probe_{args.model}.json"
     out.write_text(json.dumps({

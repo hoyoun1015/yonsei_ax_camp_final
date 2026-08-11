@@ -69,10 +69,11 @@ def min_precision(names, desc, smap) -> str | None:
     return None
 
 
-def build_pool() -> list[dict]:
+def build_pool(subsets: list[str] | None = None) -> list[dict]:
+    """후보 풀. `subsets` 를 주면 그것만 — 테스트에서 빠르게 돌리기 위해."""
     tau = load_tau()
     pool = []
-    for sub in ALL_SUBSETS:
+    for sub in (subsets or ALL_SUBSETS):
         rxns = load_reactions(GMTKN, sub)
         smap = species_map(rxns)
         rtype = reaction_type(sub)
@@ -131,33 +132,70 @@ def build_pool() -> list[dict]:
     return pool
 
 
+class StratifyShortfall(RuntimeError):
+    """목표 수를 채울 수 없다. 조용히 축소하지 않고 실패한다."""
+
+
 def stratify(pool: list[dict], per_band: dict[str, int],
-             autonomous_first: bool = True) -> list[dict]:
+             autonomous_first: bool = True, strict: bool = True) -> list[dict]:
     """밴드별로 목표 수만큼 뽑는다. **화학종 중복을 허용하지 않는다.**
 
     `per_band` 는 Stage B 에서 동결할 값이다. 여기서는 인자로만 받는다.
+
+    **화학종 유일성은 밴드 간에도 적용된다** — 한 분자가 여러 밴드에 반응을 가질 수
+    있으므로, 먼저 처리한 밴드가 뒤 밴드에 필요한 화학종을 가져갈 수 있다. 그래서
+    **여유가 적은 밴드를 먼저 처리한다**(available/want 오름차순). 밴드 C 는 G3 가
+    걸린 구간이고 밴드 D 는 공급이 가장 적으므로 이 순서가 중요하다.
+
+    **선택은 결정론적이다.** 정렬 키가 (자율 식별 여부, −|ΔE_ref|, tid) 로 완전히
+    정해지고 난수를 쓰지 않는다. 같은 풀·같은 목표면 항상 같은 결과가 나온다.
+
+    `strict=True` 면 목표를 못 채울 때 `StratifyShortfall` 을 던진다. 조용히 적게
+    반환하면 "N=92 로 돌렸다"고 적어놓고 실제로는 87개인 상태가 되고, 그것이
+    로그에 드러나지 않는다.
     """
     by_band: dict[str, list[dict]] = defaultdict(list)
     for t in pool:
         by_band[t["band"]].append(t)
 
-    picked, used_species = [], set()
-    for band, want in per_band.items():
-        cands = by_band.get(band, [])
-        # 자율 식별형을 먼저, 그다음 |ΔE| 가 경계에서 먼 것을 먼저 — 라벨이 견고하다
-        cands = sorted(
-            cands,
-            key=lambda t: (0 if (autonomous_first and t["identification"] == "autonomous")
-                           else 1, -t["abs_ref"]))
-        for t in cands:
-            if len([x for x in picked if x["band"] == band]) >= want:
+    def rank(t):
+        return (0 if (autonomous_first and t["identification"] == "autonomous") else 1,
+                -t["abs_ref"], t["tid"])
+
+    # 여유가 적은 밴드부터. 여유는 «그 밴드의 고유 화학종 수 / 목표».
+    def slack(band: str) -> float:
+        want = per_band[band]
+        avail = len({(t["subset"], t["species"]) for t in by_band.get(band, [])})
+        return (avail / want) if want else float("inf")
+
+    order = sorted(per_band, key=lambda b: (slack(b), b))
+
+    picked: list[dict] = []
+    used_species: set[tuple[str, str]] = set()
+    per_band_got: dict[str, int] = {b: 0 for b in per_band}
+
+    for band in order:
+        want = per_band[band]
+        for t in sorted(by_band.get(band, []), key=rank):
+            if per_band_got[band] >= want:
                 break
             key = (t["subset"], t["species"])
             if key in used_species:
                 continue
             used_species.add(key)
             picked.append(t)
-    return picked
+            per_band_got[band] += 1
+
+    short = {b: (per_band[b], per_band_got[b])
+             for b in per_band if per_band_got[b] < per_band[b]}
+    if short and strict:
+        detail = " · ".join(f"{b} {got}/{want}" for b, (want, got) in short.items())
+        raise StratifyShortfall(
+            f"목표 수를 채우지 못했다: {detail}\n"
+            f"처리 순서 {order} (여유가 적은 밴드 우선). "
+            "화학종 유일성이 밴드 간에도 적용되므로, 앞 밴드가 뒤 밴드에 필요한 "
+            "화학종을 가져갔을 수 있다. 목표를 낮추거나 서브셋을 추가할 것.")
+    return sorted(picked, key=lambda t: (t["band"], t["tid"]))
 
 
 def summarize(pool: list[dict]) -> None:

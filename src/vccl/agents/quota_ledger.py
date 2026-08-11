@@ -95,19 +95,26 @@ def estimate(model: str | None = None) -> dict:
             "capacity_calls": int(n_calls / drop * 100) if drop > 0 else None,
             "note": "회복 미보정 — 실제 용량은 이 값 이하일 수 있다",
         }
-    # 감소가 0%p 로 관측된 구간에서 **용량 하한**을 얻는다.
-    # 백분율 해상도가 1%p 이므로 "0%p 관측" 은 실제 감소가 1%p 미만임을 뜻한다.
-    # 따라서 호출당 소비 < 1/N %p 이고 용량 > 100·N 회다.
+    # 감소가 0%p 로 관측된 구간에서 **잠정적 용량 지표**를 얻는다.
+    #
+    # ⚠️ 엄밀한 하한이 아니다. 해상도가 1%p 이므로 "0%p 관측" 은 «관측 감소»가
+    # 1%p 미만임을 뜻할 뿐이고, 관측 감소 = 소비 − 회복이다. 구간 중 회복이
+    # 일어났다면 실제 소비는 1%p 를 넘을 수 있다(예: 소비 0.8 − 회복 0.8 = 0).
+    # 즉 이 값은 **«회복이 없었다는 가정하의 하한»**이며, 그 가정이 깨지면
+    # 실제 용량은 이보다 작다. 동결 근거로 쓰지 않는다.
     for w in ("five_hour", "weekly"):
         zero = [r for r in rows if r.get("drop_pp", {}).get(w) == 0]
         n0 = sum(r["n_calls"] for r in zero)
         out[w]["segments_with_zero_drop"] = len(zero)
         out[w]["calls_in_zero_drop_segments"] = n0
-        out[w]["capacity_lower_bound_calls"] = int(n0 * 100) if n0 else None
+        out[w]["provisional_capacity_calls_if_no_recovery"] = (
+            int(n0 * 100) if n0 else None)
         if n0:
-            out[w]["lower_bound_note"] = (
-                f"0%p 로 관측된 구간의 누적 {n0}호출에서 감소가 1%p 미만이었으므로 "
-                f"호출당 소비 < {1 / n0:.4f}%p, 용량 > {n0 * 100:,}회")
+            out[w]["provisional_note"] = (
+                f"0%p 로 관측된 구간의 누적 {n0}호출에서 «관측» 감소가 1%p 미만이었다. "
+                f"회복이 없었다고 가정하면 호출당 소비 < {1 / n0:.4f}%p, "
+                f"용량 > {n0 * 100:,}회. 회복이 있었다면 실제 용량은 더 작다 — "
+                "엄밀한 하한이 아니며 동결 근거로 쓰지 않는다.")
     return out
 
 
@@ -139,14 +146,15 @@ def main():
                       f"감소 {x['total_drop_pp']}%p → 용량 ≈ {x['capacity_calls']:,}회 "
                       f"(호출당 {x['pp_per_call']}%p)")
             else:
-                lb = x.get("capacity_lower_bound_calls")
+                lb = x.get("provisional_capacity_calls_if_no_recovery")
                 print(f"  {label:<5} 감소 미관측 — 0%p 구간 "
                       f"{x.get('segments_with_zero_drop', 0)}개, 누적 "
                       f"{x.get('calls_in_zero_drop_segments', 0)}호출")
                 if lb:
-                    print(f"        → **용량 하한 > {lb:,}회** "
-                          f"(해상도 1%p 이므로 호출당 소비 < "
-                          f"{100 / lb:.4f}%p)")
+                    print(f"        → 잠정 지표: 회복이 없었다면 용량 > {lb:,}회 "
+                          f"(호출당 < {100 / lb:.4f}%p)")
+                    print("        ⚠️ 회복 미보정이므로 엄밀한 하한이 아니다. "
+                          "동결 근거로 쓰지 않는다.")
         print("  ⚠️ 회복 미보정 하한 추정 — 실제 용량은 이 값 이하일 수 있다")
 
 

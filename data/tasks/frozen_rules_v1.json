@@ -1,0 +1,377 @@
+{
+  "band_rule": {
+    "A": "|ΔE_ref| > 3·τ_L1",
+    "B": "τ_L1 < |ΔE_ref| ≤ 3·τ_L1",
+    "C": "τ_L3 < |ΔE_ref| ≤ τ_L1   ← 에스컬레이션이 값을 하는 유일한 구간",
+    "D": "|ΔE_ref| ≤ τ_L3",
+    "escalation_answer": {
+      "A": "SUFFICIENT",
+      "B": "SUFFICIENT",
+      "C": "ESCALATION",
+      "D": "FUTILE"
+    }
+  },
+  "descriptor_rule": {
+    "backbone": "중원자(비수소) 사슬의 가장 긴 경로. 탄소만 보면 ICONF 의 H2S2O7·H4P2O7 처럼 탄소 없는 분자를 다룰 수 없다.",
+    "bins_source": "IUPAC 관례 (syn / gauche=synclinal / skew=anticlinal / anti=antiperiplanar). 임의로 정한 값이 아니다.",
+    "bond_tolerance": 1.3,
+    "hbond": {
+      "max_H_acceptor_A": 2.6,
+      "min_DHA_angle_deg": 100.0,
+      "why": "SCONF(당)·PCONF21(펩타이드)은 수소결합이 배좌 안정성을 지배하므로 회전각만으로 구조가 구분되지 않는다."
+    },
+    "torsion_bins_deg": {
+      "anti": [
+        150.0,
+        180.0
+      ],
+      "gauche": [
+        30.0,
+        90.0
+      ],
+      "skew": [
+        90.0,
+        150.0
+      ],
+      "syn": [
+        0.0,
+        30.0
+      ]
+    }
+  },
+  "frozen_at": "2026-08-11",
+  "identification_rule": {
+    "ambiguous_tasks": "L3·불가로 분류된 반응은 대표 사례 트랙에서 «모호성 인식 → 재조작화» 시연 재료로 쓴다. 평가 트랙에서는 배제한다.",
+    "levels": {
+      "L1": "조성 — 회전각 유형의 개수만",
+      "L2": "패턴 — 순서는 주되 부호는 버림",
+      "L3": "부호 — 부호까지"
+    },
+    "pilot": "calibration/hypothesis_pilot.py — conformer 계열 67% 가능",
+    "rule": "반응의 두 구성원이 각자의 화학종 안에서 유일해지는 가장 거친 단계를 쓴다. L1·L2 로 유일해지면 자율 식별형(autonomous), L3 가 필요하거나 어느 단계로도 유일하지 않으면 쌍 지정형(paired).",
+    "why_not_L3": "부호까지 명시하면 사실상 구조 ID 를 풀어쓴 것이며 자율 식별이라 부를 수 없다."
+  },
+  "label_rule": {
+    "formula": "정답(과제, M) = ABSTAIN if |ΔE_ref| ≤ τ(유형, M) else sign(ΔE_ref)",
+    "implementation": "src/vccl/scoring/labels.py",
+    "note": "하나의 과제에 하나의 정답이 있는 것이 아니라, 실제로 사용한 수준 M 에 대해 정답이 정의된다. 방향이 우연히 맞아도 증거가 τ 안이면 과대해석으로 기록한다.",
+    "sign_convention": "ΔE = Σ c_i·E_i. 2성분 (A,B) 에 계수 (−1,+1) 이면 ΔE = E_B − E_A 이므로 ΔE > 0 이면 A 가 더 안정하다.",
+    "tests": "tests/test_labels.py"
+  },
+  "ladder": {
+    "geometry": "GMTKN55 제공 지오메트리 고정. 최적화하지 않는다.",
+    "levels": {
+      "L1": {
+        "cost_s": 0.02,
+        "method": "GFN2-xTB",
+        "type": "single point"
+      },
+      "L3": {
+        "cost_s_range": [
+          25,
+          3193
+        ],
+        "method": "B3LYP-D3(BJ)/def2-TZVP",
+        "type": "single point"
+      }
+    },
+    "retired": {
+      "L2": {
+        "evidence": "docs/D1_실측결과.md §8-3",
+        "method": "B3LYP-D3(BJ)/def2-SVP",
+        "reason": "단조성이 8개 서브셋 중 4개에서만 성립. ISOL24 는 L2 가 L3 보다 정확(3.345 대 5.562). 구조 이성질체 유형에서 τ_L2 < τ_L3 이라 밴드 C 가 음수 폭이 된다."
+      }
+    }
+  },
+  "provenance": {
+    "gmtkn55": {
+      "branch": "v2",
+      "commit": "b904e46",
+      "repo": "grimme-lab/GMTKN55"
+    },
+    "machine": "Apple M4, 10 core, 16 GB RAM, arm64, GPU 없음",
+    "measured_on": "2026-08-09 ~ 2026-08-10",
+    "repo_commit": "2779911",
+    "tools": {
+      "dispersion": "dftd3-python / simple-dftd3",
+      "psi4": "1.11",
+      "xtb": "6.7.1"
+    }
+  },
+  "reaction_type_rule": {
+    "conformer": "두 구조의 결합 그래프가 동일",
+    "isomer": "분자식은 같고 결합 그래프가 다름",
+    "subsets": {
+      "conformer": [
+        "ACONF",
+        "Amino20x4",
+        "ICONF",
+        "SCONF",
+        "PCONF21",
+        "CDIE20"
+      ],
+      "isomer": [
+        "ISO34",
+        "ISOL24"
+      ]
+    }
+  },
+  "scope": {
+    "deferred_to_stage_B": [
+      "최종 과제 수",
+      "조건별 반복 횟수",
+      "ablation 범위"
+    ],
+    "frozen_here": [
+      "τ 실측치 (반응 유형 × 수준)",
+      "τ 물리적 바닥",
+      "라벨 유도 규칙",
+      "밴드 정의",
+      "에스컬레이션 정답 규칙",
+      "화학종 정의",
+      "기하 서술자 정의",
+      "자율 식별 판정 규칙"
+    ],
+    "why_deferred": "API 일일 요청 한도와 예산에 의존한다. 먼저 동결하면 한도 확인 후 재동결해야 하고, 그것은 동결의 의미를 없앤다."
+  },
+  "sha256": "88be865f5d4be74e02f282a24627ddeb59cbd74647a8f10c1379254d3a4ac5c1",
+  "species_rule": {
+    "counts": {
+      "ACONF": 3,
+      "Amino20x4": 20,
+      "CDIE20": 16,
+      "ICONF": 10,
+      "ISO34": 29,
+      "ISOL24": 23,
+      "PCONF21": 3,
+      "SCONF": 2
+    },
+    "definition": "반응 그래프의 연결성분. 한 반응에 함께 등장하는 구조를 같은 화학종으로 묶고 이행적으로 닫는다.",
+    "why": "이름 규칙으로 뽑으면 CDIE20 의 R21→P20 처럼 번호를 넘나드는 반응에서 한 반응이 두 화학종으로 쪼개져 pseudo-replication 방지 취지가 깨진다."
+  },
+  "stage": "A",
+  "tau": {
+    "floor": 0.2,
+    "floor_reason": "GMTKN55 참조값 자체의 추정 오차 ±0.2 kcal/mol (ISOL24 .res 주석, DLPNO-CCSD(T)/CBS). 어떤 수준의 τ 도 이보다 작아질 수 없다.",
+    "n_reactions": {
+      "conformer": {
+        "L1": 167,
+        "L2": 167,
+        "L3": 167
+      },
+      "isomer": {
+        "L1": 57,
+        "L2": 57,
+        "L3": 57
+      }
+    },
+    "per_subset_detail": {
+      "ACONF": {
+        "levels": {
+          "L1": {
+            "mae": 0.192919,
+            "max": 0.493004,
+            "median": 0.242807,
+            "n": 15
+          },
+          "L2": {
+            "mae": 0.195405,
+            "max": 0.444597,
+            "median": 0.184974,
+            "n": 15
+          },
+          "L3": {
+            "mae": 0.065356,
+            "max": 0.180373,
+            "median": 0.049682,
+            "n": 15
+          }
+        },
+        "n_reactions": 15,
+        "type": "conformer"
+      },
+      "Amino20x4": {
+        "levels": {
+          "L1": {
+            "mae": 0.953869,
+            "max": 4.408903,
+            "median": 0.716411,
+            "n": 80
+          },
+          "L2": {
+            "mae": 0.789695,
+            "max": 3.06732,
+            "median": 0.709092,
+            "n": 80
+          },
+          "L3": {
+            "mae": 0.23515,
+            "max": 1.242978,
+            "median": 0.174112,
+            "n": 80
+          }
+        },
+        "n_reactions": 80,
+        "type": "conformer"
+      },
+      "CDIE20": {
+        "levels": {
+          "L1": {
+            "mae": 1.80174,
+            "max": 4.405526,
+            "median": 1.569462,
+            "n": 20
+          },
+          "L2": {
+            "mae": 1.31698,
+            "max": 2.547806,
+            "median": 1.27803,
+            "n": 20
+          },
+          "L3": {
+            "mae": 1.078616,
+            "max": 2.124282,
+            "median": 1.041607,
+            "n": 20
+          }
+        },
+        "n_reactions": 20,
+        "type": "conformer"
+      },
+      "ICONF": {
+        "levels": {
+          "L1": {
+            "mae": 1.629063,
+            "max": 4.276508,
+            "median": 1.661267,
+            "n": 17
+          },
+          "L2": {
+            "mae": 0.60442,
+            "max": 1.813438,
+            "median": 0.412838,
+            "n": 17
+          },
+          "L3": {
+            "mae": 0.328011,
+            "max": 0.792876,
+            "median": 0.249546,
+            "n": 17
+          }
+        },
+        "n_reactions": 17,
+        "type": "conformer"
+      },
+      "ISO34": {
+        "levels": {
+          "L1": {
+            "mae": 6.901932,
+            "max": 21.635362,
+            "median": 7.088804,
+            "n": 34
+          },
+          "L2": {
+            "mae": 2.122982,
+            "max": 9.267995,
+            "median": 1.740795,
+            "n": 34
+          },
+          "L3": {
+            "mae": 1.948858,
+            "max": 10.30941,
+            "median": 1.448167,
+            "n": 34
+          }
+        },
+        "n_reactions": 34,
+        "type": "isomer"
+      },
+      "ISOL24": {
+        "levels": {
+          "L1": {
+            "mae": 12.190209,
+            "max": 29.431559,
+            "median": 8.010599,
+            "n": 23
+          },
+          "L2": {
+            "mae": 3.345212,
+            "max": 10.133337,
+            "median": 3.194388,
+            "n": 23
+          },
+          "L3": {
+            "mae": 5.562337,
+            "max": 19.251778,
+            "median": 3.484607,
+            "n": 23
+          }
+        },
+        "n_reactions": 23,
+        "type": "isomer"
+      },
+      "PCONF21": {
+        "levels": {
+          "L1": {
+            "mae": 1.757166,
+            "max": 4.243821,
+            "median": 1.771834,
+            "n": 18
+          },
+          "L2": {
+            "mae": 2.00578,
+            "max": 5.197808,
+            "median": 1.04421,
+            "n": 18
+          },
+          "L3": {
+            "mae": 0.536927,
+            "max": 1.035197,
+            "median": 0.514055,
+            "n": 18
+          }
+        },
+        "n_reactions": 18,
+        "type": "conformer"
+      },
+      "SCONF": {
+        "levels": {
+          "L1": {
+            "mae": 1.642908,
+            "max": 7.240293,
+            "median": 1.12079,
+            "n": 17
+          },
+          "L2": {
+            "mae": 3.098868,
+            "max": 8.520844,
+            "median": 2.848776,
+            "n": 17
+          },
+          "L3": {
+            "mae": 0.65096,
+            "max": 2.752129,
+            "median": 0.530341,
+            "n": 17
+          }
+        },
+        "n_reactions": 17,
+        "type": "conformer"
+      }
+    },
+    "scope_rule": "τ 는 반응 유형별이다. 서브셋별로 두지 않는다 — 에이전트가 런타임에 조회해야 하는데 오염 방어가 서브셋 정체를 숨기도록 요구하기 때문(기획안 §3.2). 반응 유형은 결합 그래프 비교로 판정 가능하다.",
+    "values": {
+      "conformer": {
+        "L1": 1.212518,
+        "L2": 1.146744,
+        "L3": 0.40522
+      },
+      "isomer": {
+        "L1": 9.035798,
+        "L2": 2.616163,
+        "L3": 3.406928
+      }
+    }
+  },
+  "version": "v1"
+}

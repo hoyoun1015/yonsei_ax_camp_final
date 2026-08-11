@@ -83,6 +83,17 @@
       }
     }
   },
+  "leakage_check": {
+    "action": "전역 τ 를 그대로 쓴다.",
+    "band_changes": [],
+    "finding": "동일 풀 사용에 따른 self-influence 를 leave-one-out 으로 검사했으며 224/224 에서 band assignment 변화가 없었다.",
+    "issue": "τ 를 224반응 전량에서 계산하고 같은 풀에서 평가 과제를 뽑으므로, 과제 i 의 라벨 임계값이 과제 i 자신의 오차에 일부 의존한다 (self-influence).",
+    "max_tau_shift": 0.36421,
+    "method": "leave-one-out τ — 각 반응의 밴드를 그 반응을 뺀 τ 로 다시 매겨 배정이 달라지는 개수를 센다.",
+    "n_changed": 0,
+    "n_total": 224,
+    "note": "τ 값 자체는 LOO 에서 이동한다(최대 이동은 max_tau_shift 참조). 밴드 경계를 넘지 않았을 뿐이다. 이 검사는 self-influence 가 밴드 배정에 미친 영향을 잰 것이며, 그 이상을 주장하지 않는다."
+  },
   "provenance": {
     "gmtkn55": {
       "branch": "v2",
@@ -91,7 +102,7 @@
     },
     "machine": "Apple M4, 10 core, 16 GB RAM, arm64, GPU 없음",
     "measured_on": "2026-08-09 ~ 2026-08-10",
-    "repo_commit": "2779911",
+    "repo_commit": "2f23233",
     "tools": {
       "dispersion": "dftd3-python / simple-dftd3",
       "psi4": "1.11",
@@ -134,7 +145,7 @@
     ],
     "why_deferred": "API 일일 요청 한도와 예산에 의존한다. 먼저 동결하면 한도 확인 후 재동결해야 하고, 그것은 동결의 의미를 없앤다."
   },
-  "sha256": "88be865f5d4be74e02f282a24627ddeb59cbd74647a8f10c1379254d3a4ac5c1",
+  "sha256": "0bfc4cee6a6cf0e087d104610fa83975ca5223ef99381130d301317f84995e8b",
   "species_rule": {
     "counts": {
       "ACONF": 3,

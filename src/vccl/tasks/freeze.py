@@ -41,6 +41,7 @@ TAG_L3 = ("dft_work", "b3lyp-d3bj_def2-TZVP", "sp.out")
 TAG_L2 = ("dft_work", "b3lyp-d3bj_def2-SVP", "sp.out")   # 폐기됨. 기록만
 OUT = ROOT / "data" / "tasks" / "frozen_rules_v1.json"
 TAU_FLOOR = 0.2
+LEAK: dict = {}
 ALL_SUBSETS = CONFORMER_SUBSETS + ISOMER_SUBSETS
 
 
@@ -73,32 +74,87 @@ def _energy(subset: str, name: str, level: str):
 
 
 def measure_tau():
-    """반응 유형 × 수준의 τ 와, 서브셋별 내역."""
-    per_type = defaultdict(lambda: defaultdict(list))
+    """반응 유형 × 수준의 τ. 반응별 오차를 그대로 들고 나온다(LOO 계산에 필요).
+
+    **누락을 조용히 건너뛰지 않는다.** 에너지가 하나라도 없으면 그 반응은 τ 에서
+    빠지는데, 그러면 동결본이 "일부만 쓴 τ"가 되면서도 그 사실이 드러나지 않는다.
+    기대 개수와 대조해 어긋나면 즉시 실패한다.
+    """
+    per_type = defaultdict(lambda: defaultdict(dict))   # 유형 → 수준 → {rid: 오차}
     per_subset = {}
+    missing = defaultdict(list)
     for sub in ALL_SUBSETS:
         rxns = load_reactions(GMTKN, sub)
         rt = reaction_type(sub)
         row = {}
         for level in ("L1", "L2", "L3"):
-            errs = []
+            errs = {}
             for r in rxns:
                 es = [_energy(sub, n, level) for n in r.names]
-                if all(e is not None for e in es):
-                    calc = sum(c * e for c, e in zip(r.coeffs, es)) * HARTREE
-                    errs.append(abs(calc - r.ref))
+                if any(e is None for e in es):
+                    missing[(sub, level)].append(r.rid)
+                    continue
+                calc = sum(c * e for c, e in zip(r.coeffs, es)) * HARTREE
+                errs[r.rid] = abs(calc - r.ref)
             if errs:
-                # 6자리로 둔다. 4자리로 자르면 표시 단계에서 이중 반올림이 생겨
-                # 같은 데이터가 1.213 과 1.212 로 달라 보인다(실측 1.212518).
-                row[level] = {"mae": round(st.mean(errs), 6),
-                              "median": round(st.median(errs), 6),
-                              "max": round(max(errs), 6), "n": len(errs)}
-                per_type[rt][level].extend(errs)
+                vals = list(errs.values())
+                row[level] = {"mae": round(st.mean(vals), 6),
+                              "median": round(st.median(vals), 6),
+                              "max": round(max(vals), 6), "n": len(vals)}
+                per_type[rt][level].update(errs)
         per_subset[sub] = {"type": rt, "n_reactions": len(rxns), "levels": row}
-    tau = {rt: {lv: round(st.mean(v), 6) for lv, v in d.items()}
-           for rt, d in per_type.items()}
-    counts = {rt: {lv: len(v) for lv, v in d.items()} for rt, d in per_type.items()}
-    return tau, counts, per_subset
+
+    if missing:
+        lines = [f"  {sub}/{lv}: {len(ids)}개 — {', '.join(ids[:3])}..."
+                 for (sub, lv), ids in sorted(missing.items())]
+        raise SystemExit(
+            "동결 중단 — 계산이 누락된 반응이 있다. 조용히 건너뛰면 동결본이 "
+            "«일부만 쓴 τ»가 되면서도 그 사실이 드러나지 않는다.\n"
+            + "\n".join(lines)
+            + "\n\n해당 서브셋을 calibration/safe_dft.py 로 마저 돌린 뒤 다시 동결할 것.")
+
+    tau = {rt: {lv: round(st.mean(list(d.values())), 6) for lv, d in lvls.items()}
+           for rt, lvls in per_type.items()}
+    counts = {rt: {lv: len(d) for lv, d in lvls.items()}
+              for rt, lvls in per_type.items()}
+    return tau, counts, per_subset, per_type
+
+
+def loo_tau(per_type, rtype, level, rid):
+    """leave-one-out τ — 그 반응 자신을 빼고 계산한 τ.
+
+    τ 를 224반응 전량에서 계산하고 그 안에서 평가 과제를 뽑으면, 과제 i 의 라벨
+    임계값이 과제 i 자신의 오차에 일부 의존한다(calibration/test leakage).
+    LOO 는 그 순환을 정확히 제거한다.
+    """
+    d = per_type[rtype][level]
+    others = [v for k, v in d.items() if k != rid]
+    return st.mean(others)
+
+
+def leakage_impact(per_type, floor=TAU_FLOOR):
+    """LOO 로 바꾸면 밴드 배정이 몇 개나 달라지는가."""
+    def band(a, lo, hi):
+        if a <= lo:
+            return "D"
+        if a <= hi:
+            return "C"
+        return "B" if a <= 3 * hi else "A"
+
+    changed, total, max_shift = [], 0, 0.0
+    for sub in ALL_SUBSETS:
+        rt = reaction_type(sub)
+        for r in load_reactions(GMTKN, sub):
+            total += 1
+            g_lo = max(st.mean(list(per_type[rt]["L3"].values())), floor)
+            g_hi = max(st.mean(list(per_type[rt]["L1"].values())), floor)
+            l_lo = max(loo_tau(per_type, rt, "L3", r.rid), floor)
+            l_hi = max(loo_tau(per_type, rt, "L1", r.rid), floor)
+            max_shift = max(max_shift, abs(g_hi - l_hi), abs(g_lo - l_lo))
+            b1, b2 = band(abs(r.ref), g_lo, g_hi), band(abs(r.ref), l_lo, l_hi)
+            if b1 != b2:
+                changed.append((r.rid, b1, b2))
+    return changed, total, max_shift
 
 
 def species_counts():
@@ -118,7 +174,22 @@ def git_rev(path: Path) -> str | None:
 
 
 def main():
-    tau, counts, per_subset = measure_tau()
+    tau, counts, per_subset, per_type = measure_tau()
+
+    changed, total, max_shift = leakage_impact(per_type)
+    global LEAK
+    LEAK = {"changed": [{"rid": r, "global": a, "loo": b} for r, a, b in changed],
+            "total": total, "max_shift": max_shift,
+            "finding": (f"동일 풀 사용에 따른 self-influence 를 leave-one-out 으로 "
+                        f"검사했으며 {total}/{total} 에서 band assignment 변화가 "
+                        f"없었다." if not changed else
+                        f"leave-one-out 검사에서 {len(changed)}/{total} 의 "
+                        f"band assignment 가 달라졌다."),
+            "note": "τ 값 자체는 LOO 에서 이동한다(최대 이동은 max_tau_shift 참조). "
+                    "밴드 경계를 넘지 않았을 뿐이다. 이 검사는 self-influence 가 "
+                    "밴드 배정에 미친 영향을 잰 것이며, 그 이상을 주장하지 않는다.",
+            "action": ("전역 τ 를 그대로 쓴다." if not changed else
+                       "LOO τ 채택 여부를 결정할 것.")}
 
     payload = {
         "version": "v1",
@@ -225,6 +296,20 @@ def main():
                                "평가 트랙에서는 배제한다.",
             "pilot": "calibration/hypothesis_pilot.py — conformer 계열 67% 가능",
         },
+        "leakage_check": {
+            "issue": "τ 를 224반응 전량에서 계산하고 같은 풀에서 평가 과제를 뽑으므로, "
+                     "과제 i 의 라벨 임계값이 과제 i 자신의 오차에 일부 의존한다 "
+                     "(self-influence).",
+            "method": "leave-one-out τ — 각 반응의 밴드를 그 반응을 뺀 τ 로 다시 매겨 "
+                      "배정이 달라지는 개수를 센다.",
+            "band_changes": LEAK["changed"],
+            "n_changed": len(LEAK["changed"]),
+            "n_total": LEAK["total"],
+            "max_tau_shift": round(LEAK["max_shift"], 6),
+            "finding": LEAK["finding"],
+            "note": LEAK["note"],
+            "action": LEAK["action"],
+        },
         "provenance": {
             "gmtkn55": {"repo": "grimme-lab/GMTKN55", "branch": "v2",
                         "commit": "b904e46"},
@@ -239,6 +324,26 @@ def main():
     body = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
     digest = hashlib.sha256(body.encode()).hexdigest()
     payload["sha256"] = digest
+
+    # 동결본 덮어쓰기 방지 — 불변조건 7. 이미 동결된 파일을 말없이 갈아치우면
+    # "동결"이라는 말이 의미를 잃는다. 내용이 같으면 통과, 다르면 중단한다.
+    if OUT.exists():
+        prev = json.loads(OUT.read_text())
+        if prev.get("sha256") == digest:
+            print(f"이미 동결돼 있고 내용이 동일하다 (SHA-256 {digest[:16]}…). "
+                  "재현성 확인 완료.")
+            return
+        if "--force" not in sys.argv:
+            raise SystemExit(
+                f"동결 중단 — {OUT.name} 이 이미 존재하고 내용이 다르다.\n"
+                f"  기존 {prev.get('sha256', '?')[:16]}…\n"
+                f"  신규 {digest[:16]}…\n\n"
+                "동결본을 바꾸는 것은 CLAUDE.md 불변조건 7 위반일 수 있다 — "
+                "«τ와 라벨은 동결 후 불변. 결과를 본 뒤에는 어떤 이유로도 수정하지 "
+                "않는다».\n정당한 재동결이라면 DECISION_LOG 에 근거를 남기고 "
+                "--force 로 다시 실행할 것.")
+        print("⚠️  --force — 기존 동결본을 덮어쓴다. DECISION_LOG 에 근거를 남길 것.\n")
+
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 
@@ -253,6 +358,9 @@ def main():
     print(f"바닥: τ := max(실측, {TAU_FLOOR})")
     print(f"\n→ {OUT.relative_to(ROOT)}")
     print(f"   SHA-256 {digest}")
+    print(f"\n누출 검사 (leave-one-out): 밴드가 달라지는 반응 "
+          f"{len(LEAK['changed'])}/{LEAK['total']}개 · "
+          f"τ 최대 변동 {LEAK['max_shift']:.4f} kcal/mol")
     print("\n동결하지 않은 것 (Stage B — API 한도 확인 후): "
           "최종 과제 수 · 반복 횟수 · ablation 범위")
 

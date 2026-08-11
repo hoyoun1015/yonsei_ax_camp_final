@@ -13,6 +13,56 @@
 
 ---
 
+## 2026-08-11 (4) — 🔒 Stage B 동결: 실험 규모와 실행 규약
+
+**산출물** `data/tasks/frozen_stage_b_v1.json` · SHA-256 `20c83da8ffc6035363235327bf1ec772…`
+Stage A(`0bfc4cee6a6cf0e0…`)에 의존한다.
+
+**Primary experiment.**
+
+  Main benchmark   N=92 (A30 B22 C25 D15), 화학종 중복 없음, 추론 단위는 화학종
+  Conditions       V · V−τ · L0 · R0
+  Primary model    gemini-3.6-flash-high
+  3-agent          PI / Computational Chemist / Skeptical Reviewer — 줄이지 않는다
+  Ident. challenge primary 24 (유의성 검정) · secondary 94 (기술 통계 전용)
+
+과제 92개의 tid 전량을 동결본에 넣었다. R0 는 결과까지 확정됐다(results/r0_baseline.json).
+
+**실행 규약을 함께 동결했다.** 이것이 없으면 "같은 조건으로 돌렸다"를 증명할 수 없다.
+
+  프롬프트 버전      v1
+  프롬프트 코드 해시  loop.py · schemas.py · prompts.py 세 파일의 SHA-256
+                    (f-string 이라 텍스트만 떼어낼 수 없어 생성 코드 전체를 고정)
+  최대 라운드        3 (분기 A escalate + 분기 B reoperationalize 합산)
+  재시도 정책        3단 사다리 — ①플래그 없이 프롬프트 지시 ②--json-schema 강제
+                    ③②+빈 응답 알림. 동일 요청 반복은 무의미했다(실측)
+  --effort          사용 금지 — -high/-low 모델명과 충돌해 하드 에러
+  파서              backend.py::_salvage — 코드펜스 제거·최외곽 {…} 파싱·
+                    타입·enum 소속까지 검증
+  과제 순서          밴드·tid 오름차순. 정렬 키 (자율식별, −|ΔE_ref|, tid) 로 완전 결정
+  시드              claim::{rid} (가설 방향) · anon::{task_id} (구조 익명화)
+
+**실패 처리 규칙.** 재시도 3경로 실패 → FAILED 기록 후 주 지표 제외(개수·사유 필수
+보고). 실행층 캐시 미스 → 중단(조용한 skip 금지). 후보에 없는 라벨 → FAILED.
+라운드 상한 → 강제 종료 후 그 시점 판단 기록(FAILED 아님).
+
+**FAILED > 5% 면 그 실행을 무효로 보고 원인을 고친 뒤 재실행한다.** 부분 결과를 확증
+결과로 쓰지 않는다. 사전등록 항목이며 결과를 본 뒤 바꾸지 않는다.
+
+**quota 를 스케줄 문제로 격하했다 (사용자 지시).** Flash 주간 용량 미확인을 과학적
+설계를 바꾸는 근거로 쓰지 않는다. 예상 호출 1,012회(V 460 · V−τ 460 · L0 92 · R0 0)이며
+5시간 창 566회이므로 최소 2개 창에 분할한다.
+
+**부차 실험 — cross-model replication 을 primary claim 과 분리했다.**
+claude-sonnet-4-6, 실측 주간 용량 169회. 범위를 **사전에** 기록한다 — 과제 30~40개,
+condition V 만, 밴드 비율 유지 부분집합. 실제 범위는 실행 직전 quota 로 확정하고
+DECISION_LOG 에 남기며, **결과를 본 뒤 늘리지 않는다.**
+
+**동결 후 순서.** ①G5 오염 검사 ②main 과 겹치지 않는 dev/smoke end-to-end
+③본실행 V·V−τ·L0 ④부차 replication.
+
+---
+
 ## 2026-08-11 (3) — 외부 코드 검토: 채점 세 축 분리, 동결 안전장치
 
 **Stage A 동결 직후 외부 검토에서 채점 로직의 결함이 발견돼 수정했다.** 평가를 한 번도

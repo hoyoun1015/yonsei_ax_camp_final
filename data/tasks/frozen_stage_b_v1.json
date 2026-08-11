@@ -1,0 +1,368 @@
+{
+  "depends_on": {
+    "stage_a": "frozen_rules_v1.json",
+    "stage_a_sha256": "0bfc4cee6a6cf0e087d104610fa83975ca5223ef99381130d301317f84995e8b"
+  },
+  "execution_protocol": {
+    "determinism": {
+      "note": "층화·챌린지 선택·가설 문장·구조 익명화가 모두 결정론적이다. LLM 샘플링만 비결정적이며 그것은 원장으로 추적한다.",
+      "seeds": {
+        "claimed_more_stable": "random.Random(f'claim::{rid}')",
+        "structure_anonymization": "random.Random(f'anon::{task_id}')"
+      },
+      "task_ordering": "밴드·tid 오름차순. 층화 정렬 키는 (자율식별 여부, −|ΔE_ref|, tid) 로 완전히 정해진다"
+    },
+    "failure_handling": {
+      "abort_threshold": {
+        "note": "사전등록 항목이다. 결과를 본 뒤 이 기준을 바꾸지 않는다.",
+        "rule": "한 condition 에서 FAILED 가 5% 를 넘으면 그 실행을 무효로 보고 원인을 고친 뒤 재실행한다. 부분 결과를 확증 결과로 쓰지 않는다.",
+        "value_pct": 5
+      },
+      "backend_exhausted": "재시도 사다리 3경로가 모두 실패하면 그 과제를 FAILED 로 기록하고 주 지표에서 제외한다. 제외 개수와 사유를 반드시 함께 보고한다.",
+      "executor_cache_miss": "캐시에 없거나 성공 마커가 없으면 **중단한다**. 조용히 건너뛰지 않는다.",
+      "invalid_structure_label": "에이전트가 후보에 없는 라벨을 지정하면 FAILED 로 기록한다.",
+      "round_limit": "강제 종료하고 그 시점 판단을 기록한다 (FAILED 아님)."
+    },
+    "max_rounds": 3,
+    "max_rounds_note": "분기 A(escalate)와 분기 B(reoperationalize)를 합산한다. 상한 도달 시 강제 종료하고 그 시점 판단을 기록한다.",
+    "prompt_source_sha256": {
+      "src/vccl/agents/loop.py": "f263b0f4e1dad6a3d6d654e9180c3b4293e7db5fe039416898ddf37fe2dcaf4c",
+      "src/vccl/agents/schemas.py": "94d70bed58555748e18d6a292c6b3f5b4ea2120d7765aa1da91a1112c369ca02",
+      "src/vccl/tasks/prompts.py": "65deefc55c071dfafd26735df5f9cfcc95870ef9ae474644b562435e2e5ea717"
+    },
+    "prompt_version": "v1",
+    "quota_scheduling": {
+      "estimated_primary_calls": {
+        "L0": 92,
+        "R0": 0,
+        "V": 460,
+        "V-tau": 460,
+        "total": 1012
+      },
+      "measured": {
+        "five_hour_capacity_calls": 566,
+        "weekly": "미측정 — quota_ledger 로 누적 추정 중"
+      },
+      "policy": "**과학적 설계를 바꾸는 근거로 쓰지 않는다.** 실행 스케줄 문제로만 취급하고 필요하면 여러 quota window 에 나눠 돌린다.",
+      "status": "Flash 주간 용량 미확인"
+    },
+    "retry_policy": {
+      "effort_flag": "사용 금지 — -high/-low 모델명과 충돌해 invalid model selection 하드 에러가 난다",
+      "ladder": [
+        "1) --json-schema 없이 프롬프트로 형식 지시",
+        "2) --json-schema 강제 (다른 코드 경로)",
+        "3) 2 + «이전 응답이 비었다» 재요청"
+      ],
+      "timeout_s": 300,
+      "why_ladder": "동일 요청 재시도는 무의미했다 — 실패가 프롬프트·스키마 조합에 결정적이어서 3회가 모두 같은 방식으로 실패했다. 시도마다 다른 경로를 쓴다."
+    },
+    "structured_output_parser": {
+      "impl": "src/vccl/agents/backend.py :: _salvage, _json_nudge",
+      "rules": [
+        "structured_output 이 있으면 그대로 사용",
+        "없으면 본문에서 코드펜스를 벗기고 최외곽 {…} 를 JSON 파싱",
+        "required 키 존재 + **타입·enum 소속까지 검증**",
+        "enum 은 프롬프트에 \"A\" | \"B\" 로 표기 — 배열로 쓰면 모델이 값이 배열이라고 읽는다(claude-sonnet-4-6 실측 3/3 실패)"
+      ]
+    }
+  },
+  "frozen_at": "2026-08-11",
+  "identification_challenge": {
+    "limitation": "primary 24개 중 15개가 Amino20x4 다. 식별 성능이 아미노산 배좌 판정에 좌우되며 다른 화학 계열로 일반화된다고 주장하지 않는다. 밴드 분포도 불균형(A13 B9 C1 D1)이라 이 세트로 밴드 의존적 주장을 하지 않는다.",
+    "primary": {
+      "inference_unit": "화학종 24종 — **유의성 검정은 이것으로 한다**",
+      "n": 24,
+      "task_ids": [
+        "ACONF:H_ttt+H_x+g-x+",
+        "Amino20x4:ALA_xag+ALA_xab",
+        "Amino20x4:ARG_xci+ARG_xby",
+        "Amino20x4:ASN_xaf+ASN_xae",
+        "Amino20x4:GLN_xai+GLN_xal",
+        "Amino20x4:GLU_xbi+GLU_xad",
+        "Amino20x4:GLY_xac+GLY_xag",
+        "Amino20x4:HIS_xaq+HIS_xav",
+        "Amino20x4:PRO_xae+PRO_xab",
+        "Amino20x4:THR_xaq+THR_xal",
+        "Amino20x4:TRP_xao+TRP_xac",
+        "SCONF:C1+C14",
+        "SCONF:G1+G3",
+        "ACONF:P_TT+P_GX",
+        "Amino20x4:ASP_xaz+ASP_xbc",
+        "Amino20x4:CYS_xai+CYS_xal",
+        "Amino20x4:MET_xbf+MET_xbo",
+        "Amino20x4:PHE_xaw+PHE_xal",
+        "ICONF:SI5H12_1+SI5H12_4",
+        "PCONF21:99+412",
+        "PCONF21:GLY_ab+GLY_b",
+        "PCONF21:SER_ab+SER_pII",
+        "Amino20x4:ILE_xae+ILE_xak",
+        "ISO34:E4+P6"
+      ]
+    },
+    "r0_exclusion": "R0 는 구조 쌍을 오라클로 받으므로 식별을 수행하지 않는다. 이 세트에서 R0 와 V 의 식별 정확도를 비교하지 않는다.",
+    "secondary": {
+      "n": 94,
+      "note": "화학종 24종에서 나온 94관측이라고 명시 보고",
+      "task_ids": [
+        "ACONF:H_ttt+H_x+g-x+",
+        "Amino20x4:ALA_xag+ALA_xab",
+        "Amino20x4:ARG_xci+ARG_xby",
+        "Amino20x4:ASN_xaf+ASN_xae",
+        "Amino20x4:GLN_xai+GLN_xal",
+        "Amino20x4:GLN_xai+GLN_xap",
+        "Amino20x4:GLU_xbi+GLU_xad",
+        "Amino20x4:GLY_xac+GLY_xag",
+        "Amino20x4:HIS_xaq+HIS_xau",
+        "Amino20x4:HIS_xaq+HIS_xav",
+        "Amino20x4:PRO_xae+PRO_xab",
+        "Amino20x4:PRO_xae+PRO_xaf",
+        "Amino20x4:THR_xaq+THR_xal",
+        "Amino20x4:TRP_xao+TRP_xac",
+        "SCONF:C1+C10",
+        "SCONF:C1+C13",
+        "SCONF:C1+C14",
+        "SCONF:C1+C15",
+        "SCONF:C1+C5",
+        "SCONF:C1+C6",
+        "SCONF:C1+C9",
+        "SCONF:G1+G3",
+        "SCONF:G1+G4",
+        "ACONF:H_ttt+H_g+x-g-",
+        "ACONF:H_ttt+H_g+x-t+",
+        "ACONF:H_ttt+H_ggg",
+        "ACONF:H_ttt+H_t+g+x-",
+        "ACONF:H_ttt+H_x+g-g-",
+        "ACONF:P_TT+P_GX",
+        "Amino20x4:ALA_xag+ALA_xai",
+        "Amino20x4:ALA_xag+ALA_xak",
+        "Amino20x4:ASP_xaz+ASP_xau",
+        "Amino20x4:ASP_xaz+ASP_xay",
+        "Amino20x4:ASP_xaz+ASP_xbc",
+        "Amino20x4:CYS_xai+CYS_xal",
+        "Amino20x4:GLN_xai+GLN_xat",
+        "Amino20x4:GLU_xbi+GLU_xal",
+        "Amino20x4:GLU_xbi+GLU_xar",
+        "Amino20x4:GLU_xbi+GLU_xav",
+        "Amino20x4:GLY_xac+GLY_xab",
+        "Amino20x4:GLY_xac+GLY_xad",
+        "Amino20x4:HIS_xaq+HIS_xah",
+        "Amino20x4:HIS_xaq+HIS_xam",
+        "Amino20x4:MET_xbf+MET_xag",
+        "Amino20x4:MET_xbf+MET_xav",
+        "Amino20x4:MET_xbf+MET_xbm",
+        "Amino20x4:MET_xbf+MET_xbo",
+        "Amino20x4:PHE_xaw+PHE_xal",
+        "Amino20x4:PHE_xaw+PHE_xan",
+        "Amino20x4:PHE_xaw+PHE_xar",
+        "Amino20x4:PRO_xae+PRO_xac",
+        "Amino20x4:PRO_xae+PRO_xad",
+        "Amino20x4:THR_xaq+THR_xab",
+        "Amino20x4:THR_xaq+THR_xag",
+        "Amino20x4:THR_xaq+THR_xah",
+        "Amino20x4:TRP_xao+TRP_xaf",
+        "Amino20x4:TRP_xao+TRP_xag",
+        "Amino20x4:TRP_xao+TRP_xah",
+        "ICONF:SI5H12_1+SI5H12_4",
+        "PCONF21:99+412",
+        "PCONF21:99+470",
+        "PCONF21:99+691",
+        "PCONF21:GLY_ab+GLY_b",
+        "PCONF21:GLY_ab+GLY_pII",
+        "PCONF21:SER_ab+SER_b",
+        "PCONF21:SER_ab+SER_pII",
+        "SCONF:C1+C3",
+        "SCONF:C1+C4",
+        "ACONF:H_ttt+H_gtt",
+        "ACONF:H_ttt+H_tgg",
+        "ACONF:H_ttt+H_tgt",
+        "ACONF:P_TT+P_GG",
+        "ACONF:P_TT+P_TG",
+        "Amino20x4:ALA_xag+ALA_xac",
+        "Amino20x4:CYS_xai+CYS_xag",
+        "Amino20x4:CYS_xai+CYS_xao",
+        "Amino20x4:GLN_xai+GLN_xan",
+        "Amino20x4:GLY_xac+GLY_xae",
+        "Amino20x4:ILE_xae+ILE_xag",
+        "Amino20x4:ILE_xae+ILE_xak",
+        "Amino20x4:PHE_xaw+PHE_xab",
+        "ICONF:SI5H12_1+SI5H12_3",
+        "PCONF21:99+215",
+        "PCONF21:99+300",
+        "PCONF21:99+366",
+        "SCONF:C1+C2",
+        "Amino20x4:ASN_xaf+ASN_xaj",
+        "Amino20x4:ASP_xaz+ASP_xad",
+        "Amino20x4:CYS_xai+CYS_xah",
+        "ICONF:SI5H12_1+SI5H12_2",
+        "ISO34:E4+P4",
+        "ISO34:E4+P6",
+        "ISO34:E5+E4",
+        "SCONF:G1+G2"
+      ],
+      "use": "기술 통계·정성 분석 전용. 유의성 검정에 쓰지 않는다"
+    }
+  },
+  "next_steps_in_order": [
+    "1) G5 오염 검사 — L0(도구 없음)가 R0 만큼 맞히면 «도구를 썼기 때문»이라는 주장이 무너진다",
+    "2) dev/smoke 실행 — main N=92 와 **겹치지 않는** 과제로 end-to-end 확인",
+    "3) 본실행 — V · V−τ · L0",
+    "4) 부차: cross-model replication"
+  ],
+  "primary_experiment": {
+    "agents": {
+      "note": "역할 수를 줄이지 않는다. 한 condition 안에서는 세 역할이 같은 모델을 쓴다 — 섞으면 결과를 모델 차이에 귀속할 수 없다.",
+      "roles": [
+        "PI",
+        "ComputationalChemist",
+        "SkepticalReviewer"
+      ]
+    },
+    "conditions": {
+      "L0": {
+        "desc": "LLM 단독, 도구 없음 — 오염 프로브(G5)",
+        "llm_calls_per_task": 1
+      },
+      "R0": {
+        "desc": "oracle-pair / decision-rule baseline. 구조 쌍·관측량·수준(L1)을 오라클로 받고 규칙 하나 적용. **자율 시스템 기준선이 아니다** — RQ1·RQ2·RQ3 를 수행하지 않으므로 결론 판단 축에서만 비교한다.",
+        "llm_calls_per_task": 0,
+        "result": "results/r0_baseline.json"
+      },
+      "V": {
+        "desc": "본 시스템 — 3-agent + τ 모듈 + 사다리",
+        "llm_calls_per_task": "4~5 (실측)"
+      },
+      "V-tau": {
+        "desc": "V 에서 τ 블록만 제거 — **주 대비**",
+        "llm_calls_per_task": "4~5"
+      }
+    },
+    "main_benchmark": {
+      "inference_unit": "화학종 (한 화학종에서 과제를 여러 개 뽑지 않는다)",
+      "n": 92,
+      "per_band": {
+        "A": 30,
+        "B": 22,
+        "C": 25,
+        "D": 15
+      },
+      "species_unique": true,
+      "task_ids": [
+        "Amino20x4:ARG_xci+ARG_xby",
+        "Amino20x4:GLU_xbi+GLU_xad",
+        "Amino20x4:HIS_xaq+HIS_xav",
+        "Amino20x4:PRO_xae+PRO_xab",
+        "Amino20x4:THR_xaq+THR_xal",
+        "Amino20x4:TRP_xao+TRP_xac",
+        "CDIE20:R21+P20",
+        "CDIE20:R22+P22",
+        "CDIE20:R25+P25",
+        "CDIE20:R44+P44",
+        "CDIE20:R46+P46",
+        "CDIE20:R47+P47",
+        "CDIE20:R48+P48",
+        "CDIE20:R56+P56",
+        "CDIE20:R57+P51",
+        "CDIE20:R60+P60",
+        "ICONF:N3H5_1+N3H5_3",
+        "ICONF:N3P3H12_1+N3P3H12_2",
+        "ICONF:S4O4_1+S4O4_2",
+        "ICONF:S8_1+S8_2",
+        "ISO34:E12+P12",
+        "ISO34:E13+P13",
+        "ISO34:E17+P17",
+        "ISO34:E27+P27",
+        "ISO34:E28+P28",
+        "ISOL24:i13e+i13p",
+        "ISOL24:i1e+i1p",
+        "ISOL24:i2e+i2p",
+        "ISOL24:i4e+i4p",
+        "ISOL24:i5e+i5p",
+        "Amino20x4:MET_xbf+MET_xbo",
+        "CDIE20:R43+P43",
+        "ISO34:E18+P18",
+        "ISO34:E26+P26",
+        "ISO34:E29+P29",
+        "ISO34:E30+P30",
+        "ISO34:E31+P31",
+        "ISO34:E7+P7",
+        "ISO34:E8+P8",
+        "ISOL24:i16e+i16p",
+        "ISOL24:i17e+i17p",
+        "ISOL24:i18e+i18p",
+        "ISOL24:i19e+i19p",
+        "ISOL24:i21e+i21p",
+        "ISOL24:i23e+i23p",
+        "ISOL24:i24e+i24p",
+        "ISOL24:i3e+i3p",
+        "ISOL24:i6e+i6p",
+        "ISOL24:i7e+i7p",
+        "ISOL24:i8e+i8p",
+        "ISOL24:i9e+i9p",
+        "PCONF21:SER_ab+SER_pII",
+        "ACONF:B_T+B_G",
+        "ACONF:H_ttt+H_tgg",
+        "ACONF:P_TT+P_GG",
+        "Amino20x4:ALA_xag+ALA_xac",
+        "Amino20x4:GLN_xai+GLN_xan",
+        "Amino20x4:GLY_xac+GLY_xae",
+        "Amino20x4:PHE_xaw+PHE_xab",
+        "CDIE20:R45+P45",
+        "ICONF:H2S2O7_1+H2S2O7_2",
+        "ISO34:E10+P10",
+        "ISO34:E15+P15",
+        "ISO34:E19+E20",
+        "ISO34:E23+P23",
+        "ISO34:E3+P3",
+        "ISO34:E32+P32",
+        "ISO34:E33+P33",
+        "ISO34:E34+P34",
+        "ISO34:E9+P9",
+        "ISOL24:i10e+i10p",
+        "ISOL24:i14e+i14p",
+        "ISOL24:i15e+i15p",
+        "ISOL24:i20e+i20p",
+        "PCONF21:99+215",
+        "PCONF21:GLY_ab+GLY_aR",
+        "SCONF:C1+C2",
+        "Amino20x4:ASN_xaf+ASN_xaj",
+        "Amino20x4:ASP_xaz+ASP_xad",
+        "Amino20x4:CYS_xai+CYS_xah",
+        "Amino20x4:ILE_xae+ILE_xaj",
+        "Amino20x4:LEU_xap+LEU_xad",
+        "Amino20x4:LYS_xap+LYS_xan",
+        "ICONF:N4H6_1+N4H6_2",
+        "ICONF:SI5H12_1+SI5H12_2",
+        "ISO34:E1+P1",
+        "ISO34:E11+P11",
+        "ISO34:E21+P21",
+        "ISO34:E4+P6",
+        "ISOL24:i12e+i12p",
+        "ISOL24:i22e+i22p",
+        "SCONF:G1+G2"
+      ]
+    },
+    "primary_model": "gemini-3.6-flash-high"
+  },
+  "provenance": {
+    "repo_commit": "3241c0d"
+  },
+  "secondary_experiment": {
+    "cross_model_replication": {
+      "model": "claude-sonnet-4-6",
+      "quota_measured": {
+        "five_hour_capacity_calls": 61,
+        "weekly_capacity_calls": 169
+      },
+      "scope_recorded_in_advance": {
+        "conditions": "V 만. V−τ·L0 는 예산상 제외",
+        "n_tasks": "30~40 (주간 용량 169회 ÷ 과제당 약 5회 = 약 34)",
+        "note": "실제 범위는 실행 직전 quota 를 확인해 확정하고 DECISION_LOG 에 기록한다. **이 범위를 결과를 본 뒤 늘리지 않는다.**",
+        "selection": "Main benchmark 92개에서 밴드 비율을 유지해 부분집합"
+      },
+      "separation": "**primary claim 과 분리된다.** 주 결과를 대체하거나 보강하는 근거로 쓰지 않으며 재현성 확인 목적만이다."
+    }
+  },
+  "sha256": "20c83da8ffc6035363235327bf1ec7722557f00c0546720492d0731b9867abd2",
+  "stage": "B",
+  "version": "v1"
+}

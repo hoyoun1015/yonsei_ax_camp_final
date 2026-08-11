@@ -24,7 +24,8 @@ from vccl.scoring.labels import (  # noqa: E402
 from vccl.tasks import prompts  # noqa: E402
 from vccl.tasks.gmtkn import Descriptor  # noqa: E402
 from vccl.tasks.pairs import (  # noqa: E402
-    StratifyShortfall, build_pool, load_tau, stratify,
+    StratifyShortfall, build_pool, identification_challenge, load_tau,
+    stratify,
 )
 
 TARGET_92 = {"A": 30, "B": 22, "C": 25, "D": 15}
@@ -211,6 +212,65 @@ def test_selected_tasks_have_hypotheses():
               f"{t['tid']}: 가설 문장이 비었다")
         check(t["precision_level"] in ("L1", "L2"),
               f"{t['tid']}: 정밀도가 {t['precision_level']} 이다")
+
+
+# ── 4. 2층 평가 구조 ─────────────────────────────────────────────────
+CHALLENGE = identification_challenge(POOL)
+
+
+def test_challenge_primary_is_species_unique():
+    """primary 는 유의성 검정의 단위다. 화학종이 중복되면 n 이 부풀려진다."""
+    keys = [(t["subset"], t["species"]) for t in CHALLENGE["primary"]]
+    dup = [k for k, c in Counter(keys).items() if c > 1]
+    check(not dup, f"primary 에 화학종 중복: {dup}")
+    check(len(keys) == CHALLENGE["n_species"],
+          f"primary 수({len(keys)})가 화학종 수({CHALLENGE['n_species']})와 달라야 하지 않는다")
+
+
+def test_challenge_contains_only_nontrivial():
+    """후보 2개짜리가 섞이면 «식별 챌린지» 라는 이름이 무의미해진다."""
+    for group in ("primary", "secondary"):
+        for t in CHALLENGE[group]:
+            check(t["identification_nontrivial"],
+                  f"{group}: {t['tid']} 가 실질 식별이 아니다")
+            check(t["n_candidates"] >= 4,
+                  f"{group}: {t['tid']} 후보 {t['n_candidates']}개")
+
+
+def test_challenge_secondary_covers_same_species():
+    """secondary 는 primary 와 «같은 화학종»에서 나와야 한다 — 별도 모집단이 아니다."""
+    ps = {(t["subset"], t["species"]) for t in CHALLENGE["primary"]}
+    ss = {(t["subset"], t["species"]) for t in CHALLENGE["secondary"]}
+    check(ps == ss, f"화학종 집합이 다르다: primary만 {ps - ss}, secondary만 {ss - ps}")
+    check(len(CHALLENGE["secondary"]) > len(CHALLENGE["primary"]),
+          "secondary 가 primary 보다 많아야 한다 (화학종당 반응 여럿)")
+
+
+def test_challenge_is_deterministic():
+    a = [t["tid"] for t in identification_challenge(POOL)["primary"]]
+    b = [t["tid"] for t in identification_challenge(list(reversed(POOL)))["primary"]]
+    check(a == b, "풀 순서에 따라 챌린지 선택이 달라졌다")
+
+
+def test_challenge_picks_hardest_per_species():
+    """화학종마다 후보가 가장 많은 반응을 골라야 한다 — 식별이 가장 어려운 것."""
+    by_sp = {}
+    for t in POOL:
+        if t["identification_nontrivial"]:
+            k = (t["subset"], t["species"])
+            by_sp.setdefault(k, []).append(t["n_candidates"])
+    for t in CHALLENGE["primary"]:
+        k = (t["subset"], t["species"])
+        check(t["n_candidates"] == max(by_sp[k]),
+              f"{t['tid']}: 후보 {t['n_candidates']} 인데 그 화학종 최대는 {max(by_sp[k])}")
+
+
+def test_main_benchmark_keeps_band_distribution():
+    """2층 구조를 도입해도 Main benchmark 의 밴드 분포는 그대로여야 한다."""
+    got = Counter(t["band"] for t in stratify(POOL, TARGET_92))
+    for band, want in TARGET_92.items():
+        check(got[band] == want,
+              f"밴드 {band} 분포가 깨졌다: {got[band]} / {want}")
 
 
 if __name__ == "__main__":

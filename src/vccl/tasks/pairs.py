@@ -137,7 +137,8 @@ class StratifyShortfall(RuntimeError):
 
 
 def stratify(pool: list[dict], per_band: dict[str, int],
-             autonomous_first: bool = True, strict: bool = True) -> list[dict]:
+             autonomous_first: bool = True, strict: bool = True,
+             nontrivial_first: bool = False) -> list[dict]:
     """밴드별로 목표 수만큼 뽑는다. **화학종 중복을 허용하지 않는다.**
 
     `per_band` 는 Stage B 에서 동결할 값이다. 여기서는 인자로만 받는다.
@@ -159,7 +160,14 @@ def stratify(pool: list[dict], per_band: dict[str, int],
         by_band[t["band"]].append(t)
 
     def rank(t):
+        """정렬 키. 완전히 정해져 있어야 선택이 결정론적이다.
+
+        `nontrivial_first` 는 **밴드 안에서만** 작동하는 2차 기준이다. 밴드별 목표
+        수는 그대로이므로 밴드 분포를 깨뜨리지 않는다 — 같은 밴드에서 선택 여지가
+        있을 때 후보 4개 이상(실질 식별)인 과제를 먼저 집는다.
+        """
         return (0 if (autonomous_first and t["identification"] == "autonomous") else 1,
+                0 if (nontrivial_first and t["identification_nontrivial"]) else 1,
                 -t["abs_ref"], t["tid"])
 
     # 여유가 적은 밴드부터. 여유는 «그 밴드의 고유 화학종 수 / 목표».
@@ -196,6 +204,44 @@ def stratify(pool: list[dict], per_band: dict[str, int],
             "화학종 유일성이 밴드 간에도 적용되므로, 앞 밴드가 뒤 밴드에 필요한 "
             "화학종을 가져갔을 수 있다. 목표를 낮추거나 서브셋을 추가할 것.")
     return sorted(picked, key=lambda t: (t["band"], t["tid"]))
+
+
+def identification_challenge(pool: list[dict]) -> dict:
+    """식별 챌린지 세트 — 구조 자율 식별 능력만 따로 평가한다.
+
+    **2층 평가 구조의 아래층이다**(기획안 §7.5).
+
+    | 층 | 대상 | 독립 단위 |
+    |---|---|---|
+    | Main benchmark | N=92 층화 (밴드 분포 유지) | 화학종 92 |
+    | **Identification challenge** | **실질 식별만 (후보 ≥4)** | **화학종 24** |
+
+    `primary` — 화학종 유일성을 지킨 24개. **유의성 검정은 이것으로 한다.**
+    `secondary` — 같은 24 화학종에서 나온 94개 반응 전량. 기술 통계·정성 분석에만
+    쓴다. 한 화학종이 반응을 여럿 내므로 독립 관측이 아니다(pseudo-replication).
+
+    선택은 결정론적이다 — 화학종마다 **후보가 가장 많은** 반응을 고르고(식별이
+    가장 어려운 것), 동수면 |ΔE_ref| 가 큰 것, 그다음 tid 순이다.
+    """
+    nt = [t for t in pool if t["identification_nontrivial"]]
+    by_species: dict[tuple, list] = defaultdict(list)
+    for t in nt:
+        by_species[(t["subset"], t["species"])].append(t)
+
+    primary = []
+    for key in sorted(by_species):
+        best = sorted(by_species[key],
+                      key=lambda t: (-t["n_candidates"], -t["abs_ref"], t["tid"]))[0]
+        primary.append(best)
+    primary.sort(key=lambda t: (t["band"], t["tid"]))
+
+    return {
+        "primary": primary,
+        "secondary": sorted(nt, key=lambda t: (t["band"], t["tid"])),
+        "n_species": len(by_species),
+        "note": ("독립 단위는 화학종 24종이다. secondary 의 94반응은 기술 통계·"
+                 "정성 분석에만 쓰고 유의성 검정에 쓰지 않는다."),
+    }
 
 
 def summarize(pool: list[dict]) -> None:

@@ -23,7 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 
-from vccl.agents.backend import Backend, Ledger  # noqa: E402
+from vccl.agents.backend import Backend, Ledger, read_quota  # noqa: E402
 from vccl.agents.loop import TaskSpec, anonymize, run_task  # noqa: E402
 from vccl.scoring.labels import (  # noqa: E402
     Band, IdentificationMode, Run, Task, Tau, band_of, error_class, is_correct,
@@ -161,6 +161,9 @@ def main():
              for t, s, _, lv in specs], ensure_ascii=False, indent=2))
         return
 
+    quota_before = read_quota()
+    print(f"\nquota 전 — {json.dumps(quota_before, ensure_ascii=False)}")
+
     be = Backend(model=args.model, ledger=ledger, condition=args.condition)
     tau_for_agent = None if args.condition == "V-tau" else tau
 
@@ -187,8 +190,10 @@ def main():
                         "error_class": ecls})
 
     summ = ledger.summary()
+    quota_after = read_quota()
     (out_dir / "results.json").write_text(json.dumps(
         {"model": args.model, "condition": args.condition,
+         "quota_before": quota_before, "quota_after": quota_after,
          "results": results, "ledger_summary": summ},
         ensure_ascii=False, indent=2, default=str))
 
@@ -206,6 +211,17 @@ def main():
         print(f"과제당 호출 {per_task:.1f}회 · 토큰 {u['total_tokens'] // len(specs):,}")
         print(f"\n120과제 1조건 추정 — 호출 {int(per_task * 120):,}회 · "
               f"토큰 {u['total_tokens'] // len(specs) * 120:,}")
+    print("\nquota 변화")
+    for grp in sorted(set(quota_before) | set(quota_after)):
+        for win in ("Five Hour Limit Remaining", "Weekly Limit Remaining"):
+            b = quota_before.get(grp, {}).get(win, "?")
+            a = quota_after.get(grp, {}).get(win, "?")
+            mark = " ←" if b != a else ""
+            print(f"  {grp:<22} {win:<28} {b:>5} → {a:>5}{mark}")
+
+    n_ok = sum(1 for r in results if r["result"]["conclusion"])
+    n_corr = sum(1 for r in results if r["is_correct"])
+    print(f"\n판단 품질 — 완주 {n_ok}/{len(results)} · 오라클 대비 정답 {n_corr}/{len(results)}")
     print(f"\n→ {out_dir.relative_to(ROOT)}")
 
 

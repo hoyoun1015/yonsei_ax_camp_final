@@ -148,68 +148,185 @@ class Backend:
 
     def ask(self, *, task_id: str, agent_role: str, round: int,
             prompt: str, schema: dict, prompt_version: str) -> dict:
-        """구조화 출력을 강제해 한 번 호출한다. 실패하면 재시도한다."""
-        spath = self._schema_dir / f"{sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest()[:16]}.json"
-        if not spath.exists():
-            spath.write_text(json.dumps(schema, ensure_ascii=False))
+        """구조화 출력을 받는다. **실패하면 경로를 바꿔 재시도한다.**
 
-        cmd = [AGY, "-p", prompt, "--model", self.model,
-               "--output-format", "json", "--json-schema", str(spath),
-               "--disable-slash-commands"]
-        if self.effort:
-            cmd += ["--effort", self.effort]
+        초안은 동일한 요청을 그대로 반복했다. 그런데 실측에서 실패가 프롬프트·스키마
+        조합에 결정적이어서 3회 재시도가 모두 같은 방식으로 실패했다
+        (`status=SUCCESS` 인데 structured_output·response 가 모두 빔).
+        그래서 시도마다 **다른 경로**를 쓴다.
+
+          1  --json-schema + 프롬프트 형식 지시
+          2  --json-schema 없이 프롬프트 형식 지시만 (CLI 강제를 우회)
+          3  2 + 이전 시도가 비었다는 사실을 알려 재요청
+
+        `--effort` 는 쓰지 않는다 — `-high`/`-low` 가 붙은 모델명과 충돌해
+        "invalid model selection" 하드 에러가 난다(0 토큰).
+        """
+        nudge = _json_nudge(schema)
+        # 실측 순서다(N=12 × 4변형, diagnose_empty.py).
+        #   플래그 없이 프롬프트 지시   24/24 성공 · 평균 18.3k 토큰 · 12.3초
+        #   --json-schema 강제          20/24 성공 · 평균 24.0k 토큰 · 17.0초
+        # 플래그 경로에서만 빈 응답이 나왔고, 25% 비싸고 24% 느리다.
+        # 그래서 플래그 없는 경로를 1순위로 두고, 실패 시 «다른 경로»로 넘어간다.
+        ladder = [
+            {"use_flag": False, "suffix": nudge},
+            {"use_flag": True, "suffix": nudge},
+            {"use_flag": False, "suffix": nudge + _RETRY_HINT},
+        ]
 
         last_err = None
-        for attempt in range(self.retries + 1):
+        for attempt, step in enumerate(ladder, 1):
+            full = prompt + step["suffix"]
+            cmd = [AGY, "-p", full, "--model", self.model,
+                   "--output-format", "json", "--disable-slash-commands"]
+            if step["use_flag"]:
+                cmd += ["--json-schema", str(self._schema_path(schema))]
+
             t0 = time.time()
+            payload: dict[str, Any] = {}
             try:
                 proc = subprocess.run(cmd, capture_output=True, text=True,
                                       timeout=self.timeout_s)
                 out = proc.stdout.strip()
                 payload = json.loads(out.splitlines()[-1]) if out else {}
             except subprocess.TimeoutExpired:
-                payload, last_err = {}, f"시간초과 {self.timeout_s}s"
+                last_err = f"시간초과 {self.timeout_s}s"
             except (json.JSONDecodeError, IndexError) as e:
-                payload, last_err = {}, f"응답 파싱 실패: {e}"
+                last_err = f"CLI 응답 파싱 실패: {e}"
             dt = time.time() - t0
 
+            status = payload.get("standard_status", payload.get("status", "ERROR"))
             parsed = payload.get("structured_output")
-            status = payload.get("status", "ERROR")
+            raw = (payload.get("response") or "").strip()
             if parsed is None:
-                # 스키마 강제가 실패해도 본문이 JSON 이면 건져낸다. 실측에서
-                # status=SUCCESS 인데 structured_output 이 비고 response 도 빈
-                # 경우가 있었다(사고 토큰만 소비). 그 경우는 재시도로 넘어간다.
-                raw = (payload.get("response") or "").strip()
-                if raw.startswith("{"):
-                    try:
-                        parsed = json.loads(raw)
-                    except json.JSONDecodeError:
-                        parsed = None
-                if parsed is None and raw:
-                    last_err = f"구조화 출력 없음. 본문 앞부분: {raw[:120]!r}"
-                elif parsed is None:
-                    last_err = "구조화 출력과 본문이 모두 비어 있다 (사고 토큰만 소비)"
-            call = Call(
+                parsed = _salvage(raw, schema)
+            if parsed is None:
+                last_err = (payload.get("error")
+                            or ("빈 응답 (사고 토큰만 소비)" if not raw
+                                else f"JSON 을 건져내지 못했다: {raw[:120]!r}"))
+
+            self.ledger.write(Call(
                 call_id=str(uuid.uuid4()),
                 timestamp=datetime.now(timezone.utc).isoformat(),
                 task_id=task_id, condition=self.condition, agent_role=agent_role,
                 model=self.model, quota_group=self.quota_group, round=round,
-                prompt_version=prompt_version,
-                prompt_sha256=sha256(prompt.encode()).hexdigest(),
-                prompt=prompt,
-                raw_response=payload.get("response", ""),
-                parsed=parsed, status=status, duration_s=round_(dt),
-                usage=payload.get("usage", {}) or {},
+                prompt_version=f"{prompt_version}#try{attempt}"
+                               f"{'' if step['use_flag'] else '+noflag'}",
+                prompt_sha256=sha256(full.encode()).hexdigest(),
+                prompt=full, raw_response=raw, parsed=parsed, status=status,
+                duration_s=round_(dt), usage=payload.get("usage", {}) or {},
                 conversation_id=payload.get("conversation_id"),
-                error=None if parsed else (last_err or f"status={status}"),
-            )
-            self.ledger.write(call)
-
-            if parsed is not None and status == "SUCCESS":
+                error=None if parsed is not None else last_err,
+            ))
+            if parsed is not None:
                 return parsed
-            last_err = call.error
         raise BackendError(
-            f"{agent_role} 호출이 {self.retries + 1}회 모두 실패했다: {last_err}")
+            f"{agent_role} 호출이 경로 {len(ladder)}개 모두 실패했다: {last_err}")
+
+    def _schema_path(self, schema: dict) -> Path:
+        p = self._schema_dir / (
+            sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest()[:16] + ".json")
+        if not p.exists():
+            p.write_text(json.dumps(schema, ensure_ascii=False))
+        return p
+
+
+_RETRY_HINT = ("\n\n⚠️ 이전 시도에서 응답이 비어 있었다. **추론을 짧게 하고 "
+               "위 JSON 객체만 즉시 출력하라.**")
+
+
+def _json_nudge(schema: dict) -> str:
+    """프롬프트에 출력 형식을 명시한다. CLI 강제를 쓰지 않는 경로에서 필수다.
+
+    **enum 을 JSON 배열로 렌더링하면 안 된다.** 초안이 `"level": ["L1","L3"]` 로
+    적었더니 claude-sonnet-4-6 이 "값이 배열이다"로 읽고 `{"level": ["L1"]}` 을
+    돌려줬다(3/3 실패). Gemini 는 "둘 중 하나"로 읽어 우연히 통과했다.
+    선택지는 배열이 아니라 **택일**임을 문법으로 드러낸다.
+    """
+    lines = []
+    for k, v in schema["properties"].items():
+        if v.get("enum"):
+            spec = " | ".join(f'"{x}"' for x in v["enum"])
+        elif v.get("type") == "boolean":
+            spec = "true | false"
+        elif v.get("type") == "integer":
+            spec = "<정수>"
+        elif v.get("type") == "number":
+            spec = "<숫자>"
+        else:
+            spec = '"<문자열>"'
+        lines.append((f'  "{k}": {spec}',
+                      f"  // {v['description']}" if v.get("description") else ""))
+    body = ",\n".join(a for a, _ in lines)
+    # 주석은 별도 목록으로 둔다 — 값 뒤에 붙이면 콤마와 뒤섞여 읽기 어렵다
+    notes = "\n".join(f'  {k.strip()}{c}' for (k, c) in
+                      ((a.split(":")[0], c) for a, c in lines) if c)
+    return ("\n\n## 출력 형식\n\n**아래 형태의 JSON 객체 하나만 출력한다.** "
+            "설명문·코드펜스·머리말을 붙이지 않는다.\n"
+            "`|` 는 택일을 뜻한다 — 배열이 아니라 값 하나를 고른다.\n\n"
+            "{\n" + body + "\n}"
+            + (f"\n\n각 항목의 뜻:\n{notes}" if notes.strip() else ""))
+
+
+def _salvage(raw: str, schema: dict) -> dict | None:
+    """본문에서 JSON 을 건져내고 필수 키를 검증한다. 코드펜스를 벗긴다."""
+    if not raw:
+        return None
+    body = raw
+    if "```" in body:
+        parts = body.split("```")
+        body = max(parts, key=len)
+    i, j = body.find("{"), body.rfind("}")
+    if i < 0 or j <= i:
+        return None
+    try:
+        cand = json.loads(body[i:j + 1])
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(cand, dict):
+        return None
+    if [k for k in schema.get("required", []) if k not in cand]:
+        return None
+    # 타입·enum 을 검증한다. 키만 보면 `{"level": ["L1"]}` 같은 응답이 통과해
+    # 뒤에서 unhashable 로 터진다(claude-sonnet-4-6 실측).
+    for k, spec in schema.get("properties", {}).items():
+        if k not in cand:
+            continue
+        v = cand[k]
+        if spec.get("enum") is not None and v not in spec["enum"]:
+            return None
+        want = spec.get("type")
+        if want == "string" and not isinstance(v, str):
+            return None
+        if want == "boolean" and not isinstance(v, bool):
+            return None
+        if want == "integer" and not isinstance(v, int):
+            return None
+        if want == "number" and not isinstance(v, (int, float)):
+            return None
+    return cand
+
+
+def read_quota(timeout_s: int = 120) -> dict[str, dict[str, str]]:
+    """Antigravity 의 남은 quota 를 조회한다 (`/usage`).
+
+    실험 전후로 찍어 실제 소비량을 기록한다. 토큰 합계만으로는 quota 소비를
+    알 수 없다 — 창(5시간/주간)별 백분율이 별도로 관리된다.
+    """
+    out = subprocess.run([AGY, "-p", "/usage", "--model", "gemini-3.6-flash-high",
+                          "--output-format", "json"],
+                         capture_output=True, text=True, timeout=timeout_s).stdout
+    try:
+        body = json.loads(out.strip().splitlines()[-1]).get("response", "")
+    except (json.JSONDecodeError, IndexError):
+        return {}
+    quota: dict[str, dict[str, str]] = {}
+    for line in body.splitlines():
+        parts = [x.strip() for x in line.split("\t") if x.strip()]
+        if len(parts) >= 3:
+            group, window, pct = parts[0], parts[1], parts[2]
+            quota.setdefault(group, {})[window] = pct
+    return quota
 
 
 def round_(x: float, n: int = 3) -> float:

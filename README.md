@@ -27,7 +27,33 @@
 
 ## 진행 상황
 
-🟢 **D1 킬게이트 전량 통과 (2026-08-09).** 연구 설계가 성립함을 실측으로 확인했다.
+**실험은 끝났다. 남은 것은 본문 집필과 replication 잔여 2 chunk다.**
+자세한 현재 상태는 [RESUME_HERE.md](RESUME_HERE.md), 모든 결정·정정 이력은
+[docs/DECISION_LOG.md](docs/DECISION_LOG.md)를 본다.
+
+| 단계 | 상태 |
+|---|---|
+| 평가 인프라 (τ 사다리 · 밴드 · 규칙 기준선) | 🟢 완료 (2026-08-09) |
+| 본실행 N=92 (V · V−τ) | 🟢 완료 · FAILED 0/92 · LLM 911호출 |
+| 식별 챌린지 primary 24 / secondary 94 | 🟢 24/24 · 94/94 (secondary는 post-hoc) |
+| Figure F0~F4 · Main Table 1 · Supplementary S1~S8 | 🔒 **LOCK** |
+| cross-model replication (sonnet · V 단독 · N=30) | 🟡 16/30 · chunk 3·4 남음 |
+| 본문 집필 | 🔲 미시작 |
+
+### 본실행 결과 (N=92 · 동일 과제 짝지음)
+
+| 지표 | R0 | V | V−τ |
+|---|---:|---:|---:|
+| 근거가 충분한 결론 | 56/92 | **74/92** | 54/92 |
+| 과대해석 (사전등록 주 지표) | 0 | **0/92** | 3/92 |
+| 과도한 신중 | — | **0/92** | 20/92 |
+| 계산 비용 (ALL_L3 대비 · psi4 실측) | 0.02% | **30.6%** | 139.3% |
+
+정확 McNemar (paired) — **V 대 V−τ p = 1.1×10⁻⁵** · V 대 R0 p = 9.1×10⁻⁴.
+
+⚠️ **사전등록 주 지표(과대해석)는 유의하지 않았다** (0:3 · p = 0.25).
+τ가 과대해석을 줄였다고 쓰지 않는다. 실제 차이는 근거가 충분한 결론 ·
+과도한 신중 · Band C에서 나왔다. 해석 시 지킬 규칙 전문은 RESUME_HERE.md에 있다.
 
 ### τ 사다리 — 8개 서브셋 331구조 전량 실측, 누락 0
 
@@ -51,12 +77,12 @@
 G3가 이 연구의 생사를 갈랐다. 밴드 C(`τ_L3 < |ΔE_ref| ≤ τ_L1`)가 비면
 에이전트가 규칙 기준선을 이길 구조적 경로가 없다.
 
-### 진행 중 · 다음
+### 남은 일
 
-- 🔄 **L2(B3LYP/def2-SVP) 실측** — 밴드 경계 확정에 필요. 초기 결과가 예상과 다르다
-  (ACONF 0.195, SCONF 3.099 — L1보다 나아지지 않음)
-- 🔴 과제셋 v1 (화학종 클러스터링 + 밴드 층화) → 라벨·지표 → **R0 실행(LLM 0콜)**
-- 🔴 그 다음에 에이전트층. **LLM을 부르는 코드는 가장 마지막에 만든다**
+- 🔲 **cross-model replication chunk 3·4** (14과제) — Claude 주간 quota 회복 후.
+  **30과제 전량 완료 전에는 성능을 열람하지 않는다** (사전등록).
+- 🔲 **본문 집필**
+- 🔲 선행연구 재확인 · 시스템 이름 확정 (VirtualLab_CC와 충돌 회피)
 
 ---
 
@@ -69,8 +95,11 @@ G3가 이 연구의 생사를 갈랐다. 밴드 C(`τ_L3 < |ΔE_ref| ≤ τ_L1`)
 | [기획안_v3.md](docs/기획안_v3.md) | 연구 설계 |
 | [구현_설계.md](docs/구현_설계.md) | 3층 구조, 스택, 구현 순서, LLM 예산 |
 | [검증된_사실.md](docs/검증된_사실.md) | 직접 확인한 수치와 미확인 항목 |
-| [DECISION_LOG.md](docs/DECISION_LOG.md) | 설계 변경 이력 |
-| [RESUME_HERE.md](RESUME_HERE.md) | 세션 중단 시 복구 안내 |
+| [DECISION_LOG.md](docs/DECISION_LOG.md) | **모든 결정·정정 이력. 과거 상태는 여기서 본다** |
+| [RESUME_HERE.md](RESUME_HERE.md) | **현재 상태 · 재현 명령 · 해석 시 지킬 규칙** |
+| [paper_logic/new_fol.md](paper_logic/new_fol.md) | 주장 사슬 NEW-FOL-1~18 + 근거·금지 표현 |
+| [paper_logic/claim_evidence_map.md](paper_logic/claim_evidence_map.md) | 주장–증거 대응표 + 한계 L1~L8 |
+| [tables/supplementary/LOCK_MANIFEST.md](tables/supplementary/LOCK_MANIFEST.md) | S1~S8 LOCK 해시 대장 |
 
 ## 그림
 
@@ -91,9 +120,16 @@ calibration/
   tau_distribution.py 오차 분포와 문턱 민감도 분석
   chain_*.sh          서브셋 순차 실행 (동시 실행 금지를 강제)
   dft_work/           에너지 캐시 — 331구조 재계산은 11시간이므로 보존한다
-docs/                 설계 문서, 실측 결과, 보고서
+docs/                 설계 문서, 실측 결과, 보고서, DECISION_LOG
 data/reference/       GMTKN55 (scripts/fetch_reference.sh 로 받는다)
-src/                  실행층 + 에이전트 (아직 비어 있음)
+src/vccl/
+  tasks/              과제 생성·층화·프롬프트·실행 순서 동결
+  executor/           계산 실행층 (xTB · psi4)
+  agents/             3-에이전트 루프 · 본실행 · 식별 챌린지 · replication
+  scoring/            집계·무결성 점검·headroom·plot/table 데이터 생성
+experiments/          실행 산출물과 원장 (calls.jsonl)
+paper_logic/          주장 사슬(FOL) · 주장–증거 대응표 · Figure/Table 설계
+figures/  tables/     LOCK 된 논문 그림·표와 생성 스크립트
 ```
 
 ### 계산 재현
@@ -126,3 +162,39 @@ python3 band_analysis.py ../data/reference/gmtkn55 tau_work dft_work
 5. **τ와 라벨은 동결 후 불변.** 결과를 본 뒤에는 어떤 이유로도 수정하지 않는다.
 6. **가장 유력한 결과는 규칙 기반 기준선이 에이전트를 이기는 것이다.**
    그래도 논문은 성립한다 — 성능을 과장하지 않는 것이 이 설계의 전제다.
+
+---
+
+## 무결성 점검
+
+```bash
+python3 src/vccl/scoring/aggregate.py --check   # 동결·커버리지·원장 23항목 (API 0)
+python3 tables/lock_manifest.py --verify        # S1~S8 LOCK 해시 대조
+```
+
+## Figure · Table 재생성
+
+논문 Figure 는 **동결 산출물에서 스크립트로만** 만든다. 수치를 손으로 옮겨 적지 않는다.
+
+```bash
+# 1) 동결본 → plot-ready 데이터 (assertion 30건 포함, LLM 0회)
+python3 src/vccl/scoring/plot_data.py
+
+# 2) plot-ready 데이터 → figures/draft/F0~F4 .pdf|.png
+python3 figures/make_figures.py
+```
+
+| | |
+|---|---|
+| 데이터 생성 | `src/vccl/scoring/plot_data.py` → `results/plot_data/` |
+| 그림 생성 | `figures/make_figures.py` → `figures/draft/` |
+| Caption | `figures/captions.md` |
+| 설계 근거 | `paper_logic/figure_design.md` |
+
+표도 같은 방식이다 — `src/vccl/scoring/table_data.py` → `results/table_data/` →
+`tables/make_tables.py` · `tables/make_supp_tables.py` → `tables/draft/` ·
+`tables/supplementary/`. **LOCK 이후에는 수치·문구를 바꾸지 않는다** (레이아웃 조정만).
+
+**`make_figures.py` 는 `results/plot_data/` 외의 어떤 것도 읽지 않는다.** 수치를 바꾸려면
+반드시 1) 을 고쳐야 하며, 그때 assertion 이 정정값 재현을 검증한다
+(비용은 psi4 실측 wall time 전용 — DECISION_LOG 2026-08-14 (1) 정정 ②).

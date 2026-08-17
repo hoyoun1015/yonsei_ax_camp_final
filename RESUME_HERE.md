@@ -1,127 +1,99 @@
 # RESUME_HERE — 세션이 죽으면 이 파일부터 읽는다
 
-최종 갱신: **2026-08-12** · 마감 **9/2** (3주 남음)
+**현재 시점 2026-08-16 · 마감 9/2**
+
+이 파일에는 **지금 상태만** 적는다. 과거 이력(무효 배치, 수정 전 설계, 지난 계획,
+디버깅 기록)은 **여기서 반복하지 않고 `docs/DECISION_LOG.md`** 를 본다.
+
+---
 
 ## 지금 상태 한 줄
 
-**시스템 구현·동결·사전 검증 전부 끝났다. 남은 것은 본실행(V · V−τ) 하나다.**
-멘토링(8/12)에서 **"무엇을 헤드라인으로 쓸지"** 답을 받아온 뒤 시작하기로 했다.
+**본실행 N=92 확증 완료. Figure F0~F4 LOCK · Main Table 1 LOCK.** 지금은 식별
+챌린지 secondary 94(post-hoc 탐색적)는 완료돼 S6 (나)에 반영됐고, cross-model replication은
+절반(16/30)에서 quota 대기 중이다. 본문 집필은 승인 전 시작하지 않는다.
 
-## 🔴 다음에 할 일 — 이 순서대로
+| 단계 | 상태 |
+|---|---|
+| 본실행 N=92 (V · V−τ) | 🟢 완료 · FAILED 0/92 · 911호출 |
+| identification challenge primary 24 | 🟢 완료 · 24/24 |
+| Figure F0~F4 | 🟢 **LOCK** (`figures/draft/`) |
+| Main Table 설계 | 🟢 완료 (`paper_logic/table_design.md`) |
+| Main Table 1 제작 | 🟢 **LOCK** (`tables/draft/T1_system.md|.pdf|.png`) |
+| secondary 94 (식별 챌린지) | 🟢 **완료** · 94/94 · post-hoc 탐색적 (S6 (나) 반영) |
+| cross-model replication (sonnet, V 단독, N=30) | 🟡 **16/30** · chunk 3·4 남음 |
+| Supplementary Table S1~S8 | 🟢 **LOCK** (2026-08-17) · `tables/supplementary/LOCK_MANIFEST.md` |
+| 본문 집필 | 🔲 승인 전 시작 금지 |
 
-### 1. 멘토링 답변을 `docs/DECISION_LOG.md`에 먼저 기록한다
+---
 
-받아올 답 3개 (`멘토링_대비_내가_알아야_할것.md` §7) —
+## 확증 결과 (N=92)
 
-1. **세 축 중 뭘 주된 주장으로?** 정확도(13문제·14%p) / 비용(14.4%) / 판단(40문제·43%p)
-2. **주 지표(§7.1)가 R0와 비교 불가능한 게 논문으로 괜찮은가**
-3. **남은 3주를 실제 실험 완성도 vs 사례 몇 개 깊게 중 어디에**
+| 지표 | R0 | V | V−τ |
+|---|---:|---:|---:|
+| 근거가 충분한 결론 | 56/92 | **74/92** | 54/92 |
+| 과대해석 (사전등록 주 지표) | 0 | **0/92** | 3/92 |
+| 과도한 신중 | — | **0/92** | 20/92 |
+| 참조방향 정확 | 56 | 74 | 56 |
+| 계산 비용 (ALL_L3 대비 · 실측) | 0.02% | **30.6%** | **139.3%** |
+| 최종 판단 수준이 L3인 과제 / L3 실행 횟수 | 0 | 45/92 · 45회 | 91/92 · **101회** |
+| 자율 식별 정확도 | 해당 없음 | 76/76 | 76/76 |
+| FAILED | — | **0/92** | **0/92** |
 
-**답이 분석 우선순위를 바꾼다** — 비용 축이면 L3 사용량 프로파일, 판단 축이면
-밴드 C 에스컬레이션 로그가 중심이 된다. **그래서 기록을 먼저 하고 실행한다.**
+**Band C (25과제)** — V 22 · V−τ 11 · R0 8
 
-### 2. 본실행 (V · V−τ)
+### 통계검정 (정확 McNemar · paired · 동일 92과제)
+
+| 비교 | 불일치 (b:c) | p |
+|---|---|---|
+| **V 대 V−τ** (근거가 충분한 결론) | 21 : 1 | **1.1×10⁻⁵** |
+| **V 대 R0** | 23 : 5 | **9.1×10⁻⁴** |
+| V−τ 대 R0 | 15 : 17 | 0.86 |
+| **V 대 V−τ (Band C)** | 11 : 0 | **9.8×10⁻⁴** |
+| V 대 R0 (Band C) | 15 : 1 | 5.2×10⁻⁴ |
+| V 대 R0 (Band C 밖) | 8 : 4 | 0.39 |
+| **과대해석 V 대 V−τ** | 0 : 3 | **0.25 (유의하지 않음)** |
+| 과도한 신중 V 대 V−τ | 0 : 20 | 1.9×10⁻⁶ |
+
+### 해석할 때 지킬 것
+
+- **사전등록 주 지표(과대해석)는 유의하지 않았다.** τ가 과대해석을 줄였다고 쓰지 않는다.
+  실제 차이는 근거가 충분한 결론·과도한 신중·Band C에서 나왔다.
+- **Band C 밖 p = 0.39는 «차이가 없다»가 아니라 «유의한 차이가 검출되지 않았다»** 이다.
+- **ALL_L3(75/92)는 상한이 아니라 비교용 정책이다.** «…% 성능» 같은 비율로 쓰지 않는다.
+  고정 문구 — *"ALL_L3가 해결한 75과제 중 74과제를 30.6% 비용으로 해결했다."*
+- **tool-limited를 «줄일 수 없는 오류»로 쓰지 않는다.** 지금 쓴 도구·수준에서 판단만
+  고쳐서는 해결하기 어려웠다는 뜻이며, 더 높은 수준으로 줄일 수 있는지는 알 수 없다.
+- **경로 B는 92과제 중 1회만 쓰였다.** «완전한 closed-loop을 검증했다»고 쓰지 않는다.
+  동시에 그것만으로 «단순 fidelity router»라고 규정하지도 않는다.
+
+---
+
+## 동결 해시 (현재)
+
+```
+frozen_rules_v1.json     0bfc4cee6a6cf0e087d104610fa83975ca5223ef99381130d301317f84995e8b
+frozen_stage_b_v1.json   2e80a29588b91bafa646065ab1726d979e611014d31cf0ff6fa961f15eac014b
+execution_order_v1.json  09f8ea4f4512c392ad75658d5929809549196eaf49e40756b67ab816992a92b0
+loop.py 5b7b79cf…  ·  schemas.py 94d70bed…  ·  prompts.py 85224e4b…
+```
+
+**Band 경계는 반응 유형별 τ다** (서브셋별 MAE가 아니다) —
+conformer 0.405 / 1.213 / 3.638 · isomer 3.407 / 9.036 / 27.107 (kcal/mol).
+
+---
+
+## 재현 명령
 
 ```bash
 cd "(진짜_이게_최종)"
-# 아직 러너 진입점을 안 만들었다 — smoke.py 를 본실행용으로 확장해야 한다
-# (main N=92 제외 로직을 끄고, condition 을 V / V-tau 로 받게)
-python3 src/vccl/agents/smoke.py --n 3     # 파이프라인 재확인용 (7/7 통과 이력)
-```
 
-⚠️ **한 번에 다 못 돌린다.** 5시간 quota 용량이 **566호출**이고 V+V−τ 가 약 920호출
-이므로 **두 개 이상의 quota window 로 나눈다.** `/usage` 를 먼저 확인하고
-`src/vccl/agents/quota_ledger.py` 에 누적한다.
+python3 src/vccl/scoring/aggregate.py --check     # 동결·무결성 점검 (API 0)
+python3 src/vccl/scoring/aggregate.py --save      # N=92 집계 (API 0)
+python3 src/vccl/scoring/plot_data.py             # 동결본 → results/plot_data/ (assertion)
+python3 figures/make_figures.py                   # plot_data → figures/draft/ (LOCK된 그림 재생성)
 
-⚠️ **로그는 절대 지우지 않는다.** 대표 사례(representative case study) trajectory 를
-여기서 뽑는다. `experiments/*/calls.jsonl` 전부 보존.
-
-⚠️ **FAILED 가 한 condition 에서 5% 를 넘으면 그 실행을 무효로 보고 원인을 고친 뒤
-재실행한다.** 부분 결과를 확증 결과로 쓰지 않는다 (사전등록 항목).
-
-### 3. 본실행 뒤 분석
-
-- **밴드 C 25개에서 실제로 L3 로 올렸나** (여기서만 R0 를 이길 수 있다)
-- **Loop Utilization — 분기 B(재조작화)를 썼나.** smoke 에서 0회였다.
-  0이면 "자유도를 줬으나 사용하지 않았다"가 그대로 결과다.
-- 대표 사례 3~5개 · cross-model 복제(secondary, Sonnet, 30~40과제, V만)
-
-### 4. 아직 안 한 것 (본실행과 무관하게 남아 있음)
-
-- 🙋 **API RPD 확인 — 사용자만 가능**
-- 🔲 **선행연구 조사.** "최초 사례" 주장은 `docs/기획안_v3.md` §3.2 에
-  **미확인으로 표시돼 있다.** 글쓰기 전에 확인할 것.
-- 🔲 **Flash 주간 용량 미측정.** 이건 **실행 스케줄 문제로만 취급한다** —
-  과학적 설계를 바꾸는 근거로 쓰지 않는다 (사용자 확정).
-- 🔲 pytest 가 이 머신 `python3` 에 없다. 테스트는 아래 러너로 돌린다.
-
-## 완료된 것
-
-| | 상태 |
-|---|---|
-| 8개 서브셋 331구조 224반응 L1·L3 계산 | 🟢 전량 완료, 누락 0 |
-| τ (반응유형별) · 밴드 A/B/C/D | 🟢 동결 (`frozen_rules_v1.json`) |
-| 문제 92개 · Identification challenge 24/94 | 🟢 동결 (`frozen_stage_b_v1.json`) |
-| 3-agent 루프 (PI / 계산담당 / 비판자) | 🟢 구현·smoke 7/7 통과 |
-| R0 기준선 | 🟢 실측 (`results/r0_baseline.json`) |
-| G5 오염 검사 | 🟢 통과 (`docs/G5_CONTAMINATION.md`) |
-| oracle headroom audit | 🟢 완료 (`docs/HEADROOM_AUDIT.md`) |
-| 멘토링 자료 | 🟢 `멘토님께.md` (push) + 개인 메모(git 제외) |
-| **V · V−τ 본실행** | 🔴 **미실행** |
-
-### 동결 해시 (바뀌면 안 된다)
-
-```
-frozen_rules_v1.json    0bfc4cee6a6cf0e087d104610fa83975ca5223ef99381130d301317f84995e8b
-frozen_stage_b_v1.json  20c83da8ffc6035363235327bf1ec7722557f00c0546720492d0731b9867abd2
-```
-
-### τ 실측값 (참고 — 실제 사용은 반응유형별이다)
-
-| 서브셋 | τ_L1 | τ_L3 | | 서브셋 | τ_L1 | τ_L3 |
-|---|---:|---:|---|---|---:|---:|
-| ISOL24 | 12.190 | 5.562 | | SCONF | 1.643 | 0.651 |
-| ISO34 | 6.902 | 1.949 | | ICONF | 1.629 | 0.328 |
-| CDIE20 | 1.802 | 1.079 | | Amino20x4 | 0.954 | 0.235 |
-| PCONF21 | 1.757 | 0.537 | | ACONF | 0.193 | 0.065 |
-
-🔒 **밴드는 서브셋이 아니라 «반응유형별» τ 로 정의한다** (§3.2). 서브셋별 τ 로 밴드를
-가르는 것은 규칙 위반이다 — 한 번 그렇게 해서 "ACONF 전부 밴드 A" 라는 가짜 결론을
-냈던 이력이 있다.
-
-## 🔴 headroom audit 결과 — 본실행 결과 해석의 전제
-
-**"이길 여지 4문제"는 채점 기준 하나에서만 나오는 값이었다.** (`docs/HEADROOM_AUDIT.md`)
-
-| 지표 | R0 | 완벽 정책 | headroom |
-|---|---:|---:|---:|
-| Escalation Appropriateness (§7.3) | 52 | 92 | **+40** (43.5%p) |
-| 참조방향 정확도 | 56 | 69 | **+13** (14.1%p) |
-| justified resolution | 56 | 69 | **+13** (14.1%p) |
-| 수준상대 정답 (`is_correct`) | 77 | 81 | +4 (4.3%p) |
-| 과대해석률 (§7.1 주 지표) | 0 | 0 | **+0** |
-
-**본실행 결과를 읽을 때 반드시 지킬 것 4가지** (`DECISION_LOG.md` 2026-08-12 (1)) —
-
-1. **R0 대비 주 비교축을 `is_correct` 로 두지 않는다.** `oracle_action` 이 «사용한
-   수준»에 따라 달라져 밴드 C 에서 R0 의 L1 보류가 정답 처리된다(17과제 무상 취득).
-   → **justified resolution · 참조방향 정확도**로 읽는다.
-2. **§7.1 은 V vs V−τ 전용이다.** R0 의 0 은 구성상 하한이라 이길 수 없고 질 수만 있다.
-3. **§7.3 Correct Abstention Rate 는 «L1 한정»임을 명시해 보고한다.** 완벽한 adaptive
-   정책이 R0(68%)보다 나쁘게 나온다(16%). 정의는 바꾸지 않는다.
-4. **비용을 함께 보고한다.** 전량 L3 의 92%(69/75) 성능을 **14.4% 비용**으로.
-   단 ALL_L3 우위 6과제 중 4개가 밴드 D 우연이라 A/B/C 한정 71 대 68 도 함께 적는다.
-
-**줄일 수 없는 몫이 11과제다** (완벽 정책의 tool-limited). 실제 V 의 agent-limited 는
-이 11개 «밖에서» 센다.
-
-## 명령어
-
-```bash
-cd "/Users/hoyoun/Documents/Yonsei_AX_Camp/(진짜_이게_최종)"
-
-# 테스트 37개 (pytest 없음 → 직접 러너)
-python3 - <<'PY'
+python3 - <<'PY'                                  # 테스트 49개 (pytest 없음)
 import sys, traceback, importlib.util; from pathlib import Path
 sys.path.insert(0, "src"); ok = fail = 0
 for f in sorted(Path("tests").glob("test_*.py")):
@@ -132,43 +104,61 @@ for f in sorted(Path("tests").glob("test_*.py")):
         except Exception: fail += 1; print(f"🔴 {f.name}::{n}"); traceback.print_exc()
 print(f"{'🟢' if not fail else '🔴'} 통과 {ok} · 실패 {fail}")
 PY
-
-python3 src/vccl/agents/r0.py            # 기준선 재현 (LLM 0회)
-python3 src/vccl/scoring/headroom.py     # headroom 감사 (LLM 0회)
-python3 src/vccl/agents/quota_probe.py   # quota 확인
 ```
 
-## 크래시 대비 (2026-08-09 에 컴퓨터가 죽었다)
+**실행 중 감시** `python3 src/vccl/agents/batch_status.py` (로컬 파일만 읽는다)
 
-**계산은 전부 끝났으므로 이제 DFT 를 다시 돌릴 일이 없다.** 다만 다시 돌릴 상황이
-오면 **반드시 `calibration/safe_dft.py`** 를 쓴다 (구 러너 `dft_tau_probe.py` 는
-워커 4개 × 6 GB 를 16 GB 머신에 요구해서 머신을 죽였다).
+---
 
-| | 구 러너 | safe_dft.py |
-|---|---|---|
-| 동시 잡 | 4 | **1 (직렬)** |
-| 선언 메모리 | 6~10 GB | **3 GB** |
-| 완료 판정 | 파일 존재 ❌ | **`Psi4 exiting successfully` 마커** |
-| 대형 분자 | in-core DF | **`scf_type disk_df`** (40원자↑) |
+## 문서 지도
 
-두 개의 함정 — **`scf_subtype disk_df` 는 없는 옵션이다**(`scf_type disk_df` 가 맞다) ·
-**`PSI_SCRATCH` 는 반드시 절대경로**(상대경로면 sp.out 조차 안 만들고 즉사).
+| | |
+|---|---|
+| `paper_logic/anchor_fol.md` | 앵커 논문(arXiv 2604.18805)의 주장 사슬 |
+| `paper_logic/new_fol.md` | 우리 주장 사슬 NEW-FOL-1~18 + 근거·금지 표현 |
+| `paper_logic/claim_evidence_map.md` | 주장–증거 대응표 + 한계 L1~L8 |
+| `paper_logic/gap_analysis.md` | 앵커 대비 · 핵심 명제 후보 · 부정적 결과 목록 |
+| `paper_logic/figure_design.md` | Figure 설계 근거 |
+| `paper_logic/table_design.md` | **Main Table 설계 (최신)** |
+| `figures/captions.md` | Figure 설명문 (LOCK) |
+| `tables/draft/T1_system.md` | Main Table 1 (LOCK) |
+| `tables/supplementary/` | 보충자료 표 S1~S8 (LOCK 전) |
+| `docs/incidents/` | 사고 원본 증거 (`DECISION_LOG` 2026-08-16 (4)) |
+| `docs/DECISION_LOG.md` | **모든 결정·정정 이력. 과거 상태는 여기서 본다** |
+| `docs/HEADROOM_AUDIT.md` | 본실행 전 audit (⚠️ 문서 상단의 정정 표시를 먼저 읽을 것) |
 
-**계산이 멈추면 먼저 `/private/tmp` 를 본다** — `du -sh /private/tmp/* | sort -rh | head`
+---
+
+## 남은 할 일
+
+1. 🟢 **secondary 94 완료** — 94/94 · 신규 FAILED 0/70 · S6 (나) 반영됨.
+   `DECISION_LOG` 2026-08-17 (1). **LOCK은 아직 하지 않았다.**
+
+
+2. 🔲 **cross-model replication chunk 3·4** — Claude 주간 quota 회복 후.
+   사전등록 `DECISION_LOG` 2026-08-14 (2)·(3). **30과제 전량 완료 전 성능 열람 금지**
+3. 🟢 **manuscript-source consistency cleanup 완료** (2026-08-17 · `DECISION_LOG` (3))
+   — headroom «천장·상한» 정정 · L0 «우연 수준» 제거 · secondary 94 현재 상태 반영 ·
+   옛 T/F 번호와 «후보 67건» 격리. **LOCK 산출물·결과 수치 무변경.**
+
+
+4. 🔲 **본문 집필** — 승인 전 시작하지 않는다
+5. 🔲 선행연구 재확인 — StatefulDiscovery 대비는 정리됨(`gap_analysis.md` §6),
+   시스템 이름은 미정 (VirtualLab_CC와 충돌 회피 필요)
+
+---
+
+## 잊지 말 것 (프로젝트 불변조건)
+
+- 주제·RQ·**위계(주인공은 에이전트)** 는 `CLAUDE.md`. 임의로 바꾸지 않는다.
+- **τ · 224반응 계산 · 비용 측정 · benchmark 는 다시 건드리지 않는다.** 완료된 평가 인프라다.
+- **동결 후 불변.** 결과를 본 뒤 τ·라벨·지표 정의를 고치지 않는다.
+- **3-agent 구조를 축소하지 않는다.** 한 condition 안에서 역할별로 모델을 섞지 않는다.
+- 문서는 전문용어 없이 사용자 목소리로 쓴다 (AI는 알지만 화학은 모르는 독자).
+- DFT를 다시 돌릴 일은 없다. 만약 돌리게 되면 **반드시 `calibration/safe_dft.py`**
+  (구 러너는 메모리 초과로 머신을 죽였다 — 상세는 `DECISION_LOG` 2026-08-09).
 
 ## git
 
-**전부 커밋·push 완료.** 최근 커밋 `6beaf2a`.
-`멘토링_대비_내가_알아야_할것.md` 와 `연구방향_검토요청.md` 는 **의도적으로 git 제외**
-(`.gitignore`). 저장소 https://github.com/hoyoun1015/yonsei_ax_camp_final
-
-## 잊지 말 것
-
-- 주제·RQ·**위계(주인공은 에이전트)** 는 `CLAUDE.md`. 임의로 바꾸지 않는다.
-- **τ · 224반응 계산 · 비용 측정 · benchmark 는 다시 건드리지 않는다.** 완료된 평가
-  인프라다.
-- **3-agent 구조를 축소하지 않는다.** 한 condition 안에서 역할별로 모델을 섞지 않는다.
-- **동결 후 불변.** 결과를 본 뒤 τ·라벨·지표 정의를 고치지 않는다.
-- **분기 B 는 원 가설을 바꾸지 않는다.** 조작화만 수정하고 최종 결론은 원 가설에 답한다.
-- 계산 규모를 줄여서 문제를 피하지 않는다. 실행 방식으로 푼다.
-- 문서는 전문용어 없이, 사용자 목소리로 쓴다 (AI 는 알지만 화학은 모르는 독자).
+저장소 https://github.com/hoyoun1015/yonsei_ax_camp_final
+`멘토링_대비_내가_알아야_할것.md` · `연구방향_검토요청.md` 는 의도적으로 git 제외.

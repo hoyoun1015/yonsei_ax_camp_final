@@ -1,0 +1,137 @@
+{
+  "tid": "ACONF:B_T+B_G",
+  "condition": "V",
+  "band": "C",
+  "rtype": "conformer",
+  "source_batch": "main_b1_20260813T003426Z_gemini-3.6-flash-high",
+  "tau_L1": 1.2125,
+  "tau_L3": 0.4052,
+  "abs_ref_kcal_mol": 0.598,
+  "final_conclusion": "REFUTED",
+  "identification_correct": true,
+  "l3_wall_s_measured": 73.0,
+  "cost_s_note": "trace 의 `cost_s` 는 40초/구조 근사값이다. 실제 계산 시간은 psi4 실측 73.0초다 — 표에는 실측값을 쓴다.",
+  "selection": {
+    "rule": "대표 사례 선정 점수에서 **최고점에 해당한 20개 사례 중 하나**를 선택했다. 점수 규칙은 `main_run.case_study_score` 다.",
+    "n_top_score": 20,
+    "provenance_note": "Hypothesis Fidelity 를 성과 지표에서 제거한 최신 기준이다. 두 조건 모두 92/92 가 True 였으므로 모든 과제에 같은 값이 더해졌고 최고점 그룹과 선택된 사례는 바뀌지 않았다 (DECISION_LOG 2026-08-16 (2)).",
+    "forbidden": "«후보 67개 가운데 선택» 이라는 옛 문구를 쓰지 않는다.",
+    "disclosure": "통계적으로 대표성을 갖는 표본이 아니라 규칙에 따라 골라낸 사례다. «대표 사례» 로 일반화하지 않는다."
+  },
+  "verbatim_note": "아래는 에이전트가 실제로 출력한 한국어 원문 **전문**이다. 요약·윤문·번역하지 않았다. 그림 5 에는 발췌만 실었고 이 표가 전문을 담는다.",
+  "steps": [
+    {
+      "round": 1,
+      "step": "operationalize",
+      "step_ko": "가설 조작화 (PI)",
+      "fields": {
+        "structure_more_stable": "S2",
+        "structure_other": "S1",
+        "observable": "relative electronic energy",
+        "identification_basis": "S2는 회전각이 gauche 형태인 배좌이며, S1은 회전각이 anti 형태인 배좌로 가설의 비교 대상 서술과 1:1로 정확히 일치함",
+        "ambiguous": false,
+        "ambiguity_note": ""
+      }
+    },
+    {
+      "round": 1,
+      "step": "choose_level",
+      "step_ko": "계산 수준 선택 (계산화학자)",
+      "fields": {
+        "level": "L1",
+        "reasoning": "비용 격차가 1,000배 이상이므로 먼저 계산 비용이 매우 적은 L1(약 0.02초)을 수행하여 에너지 차이가 방법오차(1.21 kcal/mol)보다 큰지 확인하는 계층적(Tiered) 접근이 가장 경제적입니다. L1에서 판정 불가능한 오차 범위 내(|ΔE| ≤ 1.21 kcal/mol)로 나올 경우에만 고비용의 L3로 승격하여 재계산하는 것이 효율적입니다."
+      }
+    },
+    {
+      "round": 1,
+      "step": "execute",
+      "step_ko": "실행층 계산",
+      "fields": {
+        "level": "L1",
+        "selected_pair": [
+          "B_G",
+          "B_T"
+        ],
+        "gold_pair": [
+          "B_T",
+          "B_G"
+        ],
+        "identification_correct": true,
+        "specified_pair_given": false,
+        "delta_evidence_kcal_mol": 0.6049,
+        "delta_gold_convention_kcal_mol": 0.6049,
+        "cost_s": 0.04,
+        "qc_ok": true
+      },
+      "l3_wall_s_measured": null
+    },
+    {
+      "round": 1,
+      "step": "review",
+      "step_ko": "증거 검토 (검토자)",
+      "fields": {
+        "evidence_sufficient": false,
+        "recommendation": "escalate",
+        "concern": "계산된 에너지 차이(0.605 kcal/mol)가 L1(GFN2-xTB)의 방법오차 τ(1.21 kcal/mol)보다 작아 결론을 뒷받침하기에 불충분합니다.",
+        "reasoning": "두 배좌 간 에너지 차이(|ΔE| = 0.605 kcal/mol)가 L1 수준의 방법오차(1.21 kcal/mol) 이내에 묻혀 있어 안정성을 단정할 수 없습니다. 오차 범위가 더 작은 상위 계산 수준(L3, τ = 0.41 kcal/mol)으로 승격(escalate)하여 재검증이 필요합니다."
+      }
+    },
+    {
+      "round": 2,
+      "step": "choose_level",
+      "step_ko": "계산 수준 선택 (계산화학자)",
+      "fields": {
+        "level": "L3",
+        "reasoning": "이전 라운드에서 얻은 상대 전자에너지 차이(0.605 kcal/mol)가 L1의 방법오차(1.21 kcal/mol) 이내여서 안정성을 판정할 수 없었습니다. 예상되는 에너지 차이를 유의미하게 검증하기 위해서는 방법오차가 0.41 kcal/mol로 더 작은 L3 수준의 계산이 필요합니다."
+      }
+    },
+    {
+      "round": 2,
+      "step": "execute",
+      "step_ko": "실행층 계산",
+      "fields": {
+        "level": "L3",
+        "selected_pair": [
+          "B_G",
+          "B_T"
+        ],
+        "gold_pair": [
+          "B_T",
+          "B_G"
+        ],
+        "identification_correct": true,
+        "specified_pair_given": false,
+        "delta_evidence_kcal_mol": 0.5697,
+        "delta_gold_convention_kcal_mol": 0.5697,
+        "cost_s": 80.0,
+        "qc_ok": true
+      },
+      "l3_wall_s_measured": 73.0
+    },
+    {
+      "round": 2,
+      "step": "review",
+      "step_ko": "증거 검토 (검토자)",
+      "fields": {
+        "evidence_sufficient": true,
+        "recommendation": "conclude",
+        "concern": "",
+        "reasoning": "계산된 전자에너지 차이(0.570 kcal/mol)가 L3 방법의 오차 한계 τ(0.41 kcal/mol)를 초과하므로, 두 배좌 간의 에너지 차이가 방법오차에 묻히지 않고 유의미하게 구별됩니다. 따라서 현재 증거로 가설 검증 결론을 도출하기에 충분합니다."
+      }
+    },
+    {
+      "round": 2,
+      "step": "conclude",
+      "step_ko": "결론 (PI)",
+      "fields": {
+        "conclusion": "REFUTED",
+        "restates_original_hypothesis": "회전각이 gauche 1개인 배좌가 회전각이 anti 1개인 배좌보다 전자에너지가 낮아 더 안정할 것이다.",
+        "reasoning": "L3 수준 계산 결과 E(S2) − E(S1) = +0.570 kcal/mol로 S1(anti 배좌)이 S2(gauche 배좌)보다 에너지가 낮아 더 안정합니다. 에너지 차이(0.570 kcal/mol)가 L3 방법의 오차(τ = 0.41 kcal/mol)보다 크므로 유의미한 차이이며, 따라서 gauche 배좌가 anti 배좌보다 더 안정하다는 원 가설에 반합니다."
+      }
+    }
+  ],
+  "frozen": {
+    "stage_a": "0bfc4cee6a6cf0e087d104610fa83975ca5223ef99381130d301317f84995e8b",
+    "stage_b": "2e80a29588b91bafa646065ab1726d979e611014d31cf0ff6fa961f15eac014b"
+  }
+}

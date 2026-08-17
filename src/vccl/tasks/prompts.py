@@ -104,3 +104,39 @@ def both(claimed: Descriptor, other: Descriptor, level: str) -> dict[str, str]:
     return {"neutral": neutral(claimed, other, level),
             "misleading": misleading(claimed, other, level),
             "mechanism_key": _misleading_key(claimed, other)}
+
+
+# ── 쌍 지정형(paired) ────────────────────────────────────────────────
+# DECISION_LOG 2026-08-12 (5). **위의 자율식별용 서술은 건드리지 않는다.**
+#
+# `min_precision` 이 None 인 반응은 «어떤 기하 서술로도 두 구조를 특정할 수 없는»
+# 경우다. 따라서 서술 기반 가설로는 원리적으로 식별이 불가능하고, 설계는 그런 계열을
+# 쌍 지정형으로 남기기로 했다(DECISION_LOG 2026-08-11 (2)).
+#
+# 🔴 **그렇더라도 «검증할 가설 문장» 은 반드시 존재해야 한다.** Batch 1 에서 이 경로가
+# 구현돼 있지 않아 가설이 `None` 으로 실려 나갔고, 에이전트가 *"원 가설이 제공되지
+# 않았다"* 고 답하면서 과제 16개가 무효가 됐다.
+#
+# 구조 라벨은 과제마다 실행 시점에 익명화되므로(`loop.anonymize`) 여기서는 자리표시자를
+# 둔 **템플릿**을 만들고, 라벨이 정해지는 `to_spec` 에서 렌더링한다.
+PAIRED_NEUTRAL = ("아래에 지정된 두 구조 가운데 **{claimed}** 가 **{other}** 보다 "
+                  "전자에너지가 낮아 더 안정할 것이다.")
+
+
+def paired_both() -> dict[str, str]:
+    """쌍 지정형 과제의 가설 템플릿. `{claimed}` · `{other}` 를 라벨로 채운다.
+
+    오도 서술(misleading)은 기전을 기하 서술에 붙이는 방식이라 쌍 지정형에 적용할 수
+    없다. 해당 없음으로 두고 그 사실을 명시한다 — 조용히 None 을 두지 않는다.
+    """
+    return {"neutral": PAIRED_NEUTRAL,
+            "neutral_is_template": True,
+            "misleading": None,
+            "misleading_note": "쌍 지정형에는 기전 서술을 붙이지 않는다 (해당 없음)",
+            "mechanism_key": None}
+
+
+def render_paired(template: str, claimed_label: str, other_label: str) -> str:
+    if not template:
+        raise ValueError("쌍 지정형 가설 템플릿이 비어 있다")
+    return template.format(claimed=claimed_label, other=other_label)

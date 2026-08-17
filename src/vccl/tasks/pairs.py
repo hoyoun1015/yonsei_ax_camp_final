@@ -107,8 +107,12 @@ def build_pool(subsets: list[str] | None = None) -> list[dict]:
                         identification=mode, precision_level=lv)
             band = band_of(task, tau)
 
+            # 🔴 쌍 지정형에도 가설은 반드시 있다. 예전에는 여기서 None 을 넣었고,
+            # 그 결과 과제 16개가 «검증할 가설 없이» 실행됐다
+            # (DECISION_LOG 2026-08-12 (4)·(5)). 라벨은 실행 시점에 정해지므로
+            # 템플릿을 두고 `to_spec` 에서 렌더링한다.
             hyp = (prompts.both(desc[claimed], desc[counter], lv) if lv else
-                   {"neutral": None, "misleading": None, "mechanism_key": None})
+                   prompts.paired_both())
 
             pool.append({
                 "tid": r.rid, "subset": sub, "rtype": rtype,

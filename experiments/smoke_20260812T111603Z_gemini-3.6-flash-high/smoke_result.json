@@ -1,0 +1,401 @@
+{
+  "model": "gemini-3.6-flash-high",
+  "n_tasks": 3,
+  "task_ids": [
+    "ACONF:H_ttt+H_gtt",
+    "SCONF:C1+C3",
+    "Amino20x4:ASN_xaf+ASN_xab"
+  ],
+  "excluded_from": "main N=92 + identification challenge primary",
+  "checks": {
+    "1_three_agent_roles": {
+      "pass": true,
+      "detail": "호출된 역할 ['ComputationalChemist', 'PI', 'SkepticalReviewer']"
+    },
+    "2_tool_execution_and_handoff": {
+      "pass": true,
+      "detail": "tool_result 기록 4건 · Reviewer 프롬프트에 ΔE 전달 True"
+    },
+    "3_branches": {
+      "pass": true,
+      "detail": "분기 A(escalate) 1회 · 분기 B(재조작화) 0회",
+      "note": "분기 B 가 0 이면 «경로가 없다»가 아니라 «에이전트가 쓰지 않았다»다. Loop Utilization 지표로 본실행에서 관측한다."
+    },
+    "4_structured_output_parsing": {
+      "pass": true,
+      "detail": "파싱 성공 14/14"
+    },
+    "5_ledger_fields": {
+      "pass": true,
+      "detail": "누락 필드 없음 · 원장 14줄"
+    },
+    "6_scoring_wired": {
+      "pass": true,
+      "detail": "채점된 과제 3/3"
+    },
+    "7_retry_and_failure": {
+      "pass": true,
+      "detail": "경로 전환 재시도 0건 · FAILED 과제 0/3",
+      "note": "재시도가 0건이면 1순위 경로가 전부 성공한 것이다 — 사다리 자체는 diagnose_empty.py 로 검증됐다."
+    },
+    "8_both_identification_modes": {
+      "pass": true,
+      "detail": "포함된 식별 모드 ['autonomous', 'paired']",
+      "note": ""
+    },
+    "9_every_task_has_hypothesis": {
+      "pass": true,
+      "detail": "가설 없는 과제 없음"
+    },
+    "10_identification_error_not_crash": {
+      "pass": true,
+      "detail": "식별 오류 시 크래시 없음=True · 결론 오답 처리=True · 자기증거 채점됨=True",
+      "note": "LLM 을 부르지 않는 결정론적 프로브다 — 에이전트가 참조 쌍과 다른 쌍을 골랐을 때 크래시하지 않고 «오답»으로 채점되는지 본다"
+    }
+  },
+  "results": [
+    {
+      "tid": "ACONF:H_ttt+H_gtt",
+      "band": "C",
+      "result": {
+        "task_id": "ACONF:H_ttt+H_gtt",
+        "conclusion": "SUPPORTED",
+        "level_used": "L3",
+        "delta_calc": 0.5649834346325637,
+        "rounds": 2,
+        "branch_a": 1,
+        "branch_b": 0,
+        "identified_pair": [
+          "S6",
+          "S3"
+        ],
+        "identification_correct": true,
+        "hypothesis_restated": "회전각이 anti-anti-anti 순서인 배좌가 회전각이 gauche-anti-anti 순서인 배좌보다 전자에너지가 낮아 더 안정할 것이다.",
+        "ambiguity_flagged": false,
+        "trace": [
+          {
+            "round": 1,
+            "step": "operationalize",
+            "structure_more_stable": "S6",
+            "structure_other": "S3",
+            "observable": "relative electronic energy",
+            "identification_basis": "S6은 3개 연속된 회전각이 모두 anti-anti-anti 배열을 이루어 가설에서 더 안정하다고 주장하는 배좌에 대응하고, S3은 gauche-anti-anti 배열을 이루어 비교 대상 배좌의 기하학적 서술에 정확히 일치함.",
+            "ambiguous": false,
+            "ambiguity_note": ""
+          },
+          {
+            "round": 1,
+            "step": "choose_level",
+            "level": "L1",
+            "reasoning": "L1(GFN2-xTB)은 반응당 약 0.02초로 L3 대비 1,000배 이상 저렴하므로, 먼저 L1을 실행하여 S6와 S3의 에너지 차이가 방법오차(1.21 kcal/mol)보다 큰지 신속히 확인하고, 에너지 차이가 오차 범위 내에 있어 판정이 불가능할 때만 고비용의 L3로 승격하는 계층적 스크리닝이 가장 효율적이기 때문입니다."
+          },
+          {
+            "round": 1,
+            "step": "execute",
+            "level": "L1",
+            "selected_pair": [
+              "H_ttt",
+              "H_gtt"
+            ],
+            "gold_pair": [
+              "H_ttt",
+              "H_gtt"
+            ],
+            "identification_correct": true,
+            "specified_pair_given": false,
+            "delta_evidence_kcal_mol": -0.5734,
+            "delta_gold_convention_kcal_mol": 0.5734,
+            "cost_s": 0.04,
+            "qc_ok": true
+          },
+          {
+            "round": 1,
+            "step": "review",
+            "evidence_sufficient": false,
+            "recommendation": "escalate",
+            "concern": "계산된 에너지 차이(0.573 kcal/mol)가 L1(GFN2-xTB)의 방법오차(τ = 1.21 kcal/mol)보다 작아 오차 범위 내에 묻혀 있습니다.",
+            "reasoning": "현재 수준(L1)에서는 오차 한계가 에너지 차이보다 커서 안정성을 단정할 수 없습니다. 방법오차가 더 작은 상위 수준(L3, τ = 0.41 kcal/mol)으로 재계산하여 유의미한 차이를 검증해야 합니다."
+          },
+          {
+            "round": 2,
+            "step": "choose_level",
+            "level": "L3",
+            "reasoning": "이전 라운드에서 L1으로 계산된 에너지 차이(0.573 kcal/mol)가 L1의 방법오차(1.21 kcal/mol) 범위 내에 있어 우열을 판정할 수 없었습니다. 따라서 에너지 차이를 유의미하게 구별할 수 있는 더 높은 정밀도의 L3(τ = 0.41 kcal/mol) 수준으로 올려 계산해야 합니다."
+          },
+          {
+            "round": 2,
+            "step": "execute",
+            "level": "L3",
+            "selected_pair": [
+              "H_ttt",
+              "H_gtt"
+            ],
+            "gold_pair": [
+              "H_ttt",
+              "H_gtt"
+            ],
+            "identification_correct": true,
+            "specified_pair_given": false,
+            "delta_evidence_kcal_mol": -0.565,
+            "delta_gold_convention_kcal_mol": 0.565,
+            "cost_s": 80.0,
+            "qc_ok": true
+          },
+          {
+            "round": 2,
+            "step": "review",
+            "evidence_sufficient": true,
+            "recommendation": "conclude",
+            "concern": "",
+            "reasoning": "L3 계산 수준(B3LYP-D3(BJ)/def2-TZVP)에서 산출된 전자에너지 차이(|ΔE| = 0.565 kcal/mol)가 해당 방법의 오차 한계(τ = 0.41 kcal/mol)보다 크므로, 방법오차 범위를 넘어 S6가 S3보다 더 안정하다는 결론을 도출하기에 충분한 증거입니다."
+          },
+          {
+            "round": 2,
+            "step": "conclude",
+            "conclusion": "SUPPORTED",
+            "restates_original_hypothesis": "회전각이 anti-anti-anti 순서인 배좌가 회전각이 gauche-anti-anti 순서인 배좌보다 전자에너지가 낮아 더 안정할 것이다.",
+            "reasoning": "L3 수준에서 계산된 배좌 간 에너지 차이의 크기(0.565 kcal/mol)가 해당 계산 방법의 오차 한계 τ(0.41 kcal/mol)를 초과하여 유의미하며, E(S6) − E(S3) = -0.565 kcal/mol로서 S6가 더 낮은 에너지를 가지므로 원 가설이 지지된다."
+          }
+        ],
+        "error": null,
+        "selected_pair": [
+          "H_ttt",
+          "H_gtt"
+        ],
+        "gold_pair": [
+          "H_ttt",
+          "H_gtt"
+        ],
+        "delta_evidence": -0.5649834346325637,
+        "delta_gold_convention": 0.5649834346325637,
+        "specified_pair_given": false
+      },
+      "scoring": {
+        "correct": true,
+        "overinterpretation": false,
+        "error_class": "correct"
+      }
+    },
+    {
+      "tid": "SCONF:C1+C3",
+      "band": "B",
+      "result": {
+        "task_id": "SCONF:C1+C3",
+        "conclusion": "SUPPORTED",
+        "level_used": "L1",
+        "delta_calc": 4.269576724953021,
+        "rounds": 1,
+        "branch_a": 0,
+        "branch_b": 0,
+        "identified_pair": [
+          "S2",
+          "S11"
+        ],
+        "identification_correct": true,
+        "hypothesis_restated": "회전각이 gauche 5개 · skew(anticlinal) 1개 · syn(겹침) 1개인 배좌 (분자 내 수소결합 3개)가 회전각이 anti 1개 · gauche 5개 · skew(anticlinal) 1개인 배좌 (분자 내 수소결합 2개)보다 전자에너지가 낮아 더 안정할 것이다.",
+        "ambiguity_flagged": false,
+        "trace": [
+          {
+            "round": 1,
+            "step": "operationalize",
+            "structure_more_stable": "S2",
+            "structure_other": "S11",
+            "observable": "relative electronic energy",
+            "identification_basis": "S2는 gauche 5개, skew(anticlinal) 1개, syn(겹침) 1개 및 분자 내 수소결합 3개를 가져 가설의 더 안정한 배좌 서술과 일치하며, S11은 anti 1개, gauche 5개, skew(anticlinal) 1개 및 분자 내 수소결합 2개를 가져 가설의 비교 대상 배좌 서술과 일치함.",
+            "ambiguous": false,
+            "ambiguity_note": ""
+          },
+          {
+            "round": 1,
+            "step": "choose_level",
+            "level": "L1",
+            "reasoning": "비용 격차가 1,000배 이상이므로 계층적(multi-fidelity) 스크리닝 원칙에 따라 먼저 극도로 빠른 L1(GFN2-xTB, ~0.02초)을 수행합니다. 계산된 에너지 차이가 L1의 방법오차(1.21 kcal/mol)를 유의미하게 초과하면 L3 실행 없이 즉시 결론을 내릴 수 있어 자원을 극대화할 수 있으며, 오차 범위 내에 위치해 판정이 모호한 경우에만 선별적으로 L3로 승격하는 것이 최적의 전략입니다."
+          },
+          {
+            "round": 1,
+            "step": "execute",
+            "level": "L1",
+            "selected_pair": [
+              "C1",
+              "C3"
+            ],
+            "gold_pair": [
+              "C1",
+              "C3"
+            ],
+            "identification_correct": true,
+            "specified_pair_given": false,
+            "delta_evidence_kcal_mol": -4.2696,
+            "delta_gold_convention_kcal_mol": 4.2696,
+            "cost_s": 0.04,
+            "qc_ok": true
+          },
+          {
+            "round": 1,
+            "step": "review",
+            "evidence_sufficient": true,
+            "recommendation": "conclude",
+            "concern": "",
+            "reasoning": "계산된 에너지 차이(4.270 kcal/mol)가 L1(GFN2-xTB)의 방법오차 τ(1.21 kcal/mol)를 3.5배 이상 크게 상회하므로, 오차 범위를 벗어나 S2가 S11보다 전자에너지가 낮고 더 안정하다는 방향을 단정하기에 충분한 증거입니다."
+          },
+          {
+            "round": 1,
+            "step": "conclude",
+            "conclusion": "SUPPORTED",
+            "restates_original_hypothesis": "회전각이 gauche 5개 · skew(anticlinal) 1개 · syn(겹침) 1개인 배좌 (분자 내 수소결합 3개)가 회전각이 anti 1개 · gauche 5개 · skew(anticlinal) 1개인 배좌 (분자 내 수소결합 2개)보다 전자에너지가 낮아 더 안정할 것이다.",
+            "reasoning": "L1(GFN2-xTB) 수준에서 계산된 에너지 차이 E(S2) − E(S11) = -4.270 kcal/mol로 S2가 더 낮은 전자에너지를 가져 더 안정하며, 에너지 차이의 크기(4.270 kcal/mol)가 L1의 방법오차 τ(1.21 kcal/mol)를 유의미하게 상회하므로 원 가설을 명확히 지지한다."
+          }
+        ],
+        "error": null,
+        "selected_pair": [
+          "C1",
+          "C3"
+        ],
+        "gold_pair": [
+          "C1",
+          "C3"
+        ],
+        "delta_evidence": -4.269576724953021,
+        "delta_gold_convention": 4.269576724953021,
+        "specified_pair_given": false
+      },
+      "scoring": {
+        "correct": true,
+        "overinterpretation": false,
+        "error_class": "correct"
+      }
+    },
+    {
+      "tid": "Amino20x4:ASN_xaf+ASN_xab",
+      "band": "A",
+      "result": {
+        "task_id": "Amino20x4:ASN_xaf+ASN_xab",
+        "conclusion": "SUPPORTED",
+        "level_used": "L1",
+        "delta_calc": 3.790044564055445,
+        "rounds": 1,
+        "branch_a": 0,
+        "branch_b": 0,
+        "identified_pair": [
+          "S5",
+          "S3"
+        ],
+        "identification_correct": true,
+        "hypothesis_restated": "아래에 지정된 두 구조 가운데 **S5** 가 **S3** 보다 전자에너지가 낮아 더 안정할 것이다.",
+        "ambiguity_flagged": false,
+        "trace": [
+          {
+            "round": 1,
+            "step": "operationalize",
+            "structure_more_stable": "S5",
+            "structure_other": "S3",
+            "observable": "relative electronic energy",
+            "identification_basis": "S5는 gauche-gauche-anti-syn 순서의 회전각과 3개의 분자 내 수소결합을 가지며, S3는 동일한 gauche-gauche-anti-syn 순서의 회전각과 2개의 분자 내 수소결합을 가짐",
+            "ambiguous": false,
+            "ambiguity_note": ""
+          },
+          {
+            "round": 1,
+            "step": "choose_level",
+            "level": "L1",
+            "reasoning": "비용 격차가 1,000배 이상이므로, 먼저 연산 비용이 매우 저렴한(약 0.02초) L1(GFN2-xTB)을 실행하여 두 상태 간 에너지 차이가 방법오차(1.21 kcal/mol)보다 큰지 확인하는 계층적 접근이 가장 경제적입니다. L1 오차 한계 내에 있어 판정이 불가능한 경우에만 고비용의 L3로 승격해야 불필요한 계산 자원 낭비를 막을 수 있습니다."
+          },
+          {
+            "round": 1,
+            "step": "execute",
+            "level": "L1",
+            "selected_pair": [
+              "ASN_xaf",
+              "ASN_xab"
+            ],
+            "gold_pair": [
+              "ASN_xaf",
+              "ASN_xab"
+            ],
+            "identification_correct": true,
+            "specified_pair_given": true,
+            "delta_evidence_kcal_mol": -3.79,
+            "delta_gold_convention_kcal_mol": 3.79,
+            "cost_s": 0.04,
+            "qc_ok": true
+          },
+          {
+            "round": 1,
+            "step": "review",
+            "evidence_sufficient": true,
+            "recommendation": "conclude",
+            "concern": "",
+            "reasoning": "L1(GFN2-xTB) 수준에서 계산된 전자에너지 차이(|ΔE| = 3.790 kcal/mol)가 해당 방법의 오차 한계(τ = 1.21 kcal/mol)를 초과하여 오차 범위 밖에서 유의미하므로, S5가 S3보다 전자에너지가 낮아 더 안정하다는 가설을 지지하기에 증거가 충분합니다."
+          },
+          {
+            "round": 1,
+            "step": "conclude",
+            "conclusion": "SUPPORTED",
+            "restates_original_hypothesis": "아래에 지정된 두 구조 가운데 **S5** 가 **S3** 보다 전자에너지가 낮아 더 안정할 것이다.",
+            "reasoning": "L1 수준(GFN2-xTB)에서 계산된 E(S5) − E(S3) = -3.790 kcal/mol로 S5의 전자에너지가 더 낮으며, 그 차이(3.790 kcal/mol)가 L1 방법의 오차 한계(τ = 1.21 kcal/mol)를 명확히 초과하므로 S5가 S3보다 더 안정하다는 원 가설을 지지한다."
+          }
+        ],
+        "error": null,
+        "selected_pair": [
+          "ASN_xaf",
+          "ASN_xab"
+        ],
+        "gold_pair": [
+          "ASN_xaf",
+          "ASN_xab"
+        ],
+        "delta_evidence": -3.790044564055445,
+        "delta_gold_convention": 3.790044564055445,
+        "specified_pair_given": true
+      },
+      "scoring": {
+        "correct": true,
+        "overinterpretation": false,
+        "error_class": "correct"
+      }
+    }
+  ],
+  "ledger_summary": {
+    "n_calls": 14,
+    "by_role": {
+      "PI": 6,
+      "ComputationalChemist": 4,
+      "SkepticalReviewer": 4
+    },
+    "by_quota_group": {
+      "gemini": {
+        "calls": 14,
+        "total_tokens": 273864
+      }
+    },
+    "usage": {
+      "input_tokens": 251985,
+      "output_tokens": 21879,
+      "thinking_tokens": 19389,
+      "cache_read_tokens": 12210,
+      "total_tokens": 273864
+    },
+    "failures": 0
+  },
+  "quota_before": {
+    "Gemini Models": {
+      "Weekly Limit Remaining": "86%",
+      "Five Hour Limit Remaining": "68%"
+    },
+    "Claude and GPT models": {
+      "Weekly Limit Remaining": "88%",
+      "Five Hour Limit Remaining": "100%"
+    }
+  },
+  "quota_after": {
+    "Gemini Models": {
+      "Weekly Limit Remaining": "86%",
+      "Five Hour Limit Remaining": "66%"
+    },
+    "Claude and GPT models": {
+      "Weekly Limit Remaining": "88%",
+      "Five Hour Limit Remaining": "100%"
+    }
+  },
+  "verdict": "PASS"
+}

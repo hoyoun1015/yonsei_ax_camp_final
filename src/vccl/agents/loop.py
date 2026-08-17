@@ -57,6 +57,20 @@ class TaskSpec:
     # 채점용 부호 규약 — 참조값과 동일해야 한다. ΔE = Σ cᵢ·Eᵢ
     ref_names: tuple[str, ...] = field(repr=False, default=())
     ref_coeffs: tuple[int, ...] = field(repr=False, default=())
+    # 쌍 지정형(paired) — 비교할 두 구조를 «라벨로» 명시해 준다. (claimed, other).
+    # None 이면 자율 식별형이고, 그 경로의 프롬프트는 예전 그대로다.
+    specified_pair: tuple[str, str] | None = field(default=None)
+
+    def __post_init__(self):
+        # 🔴 Batch 1 무효의 직접 원인 — 가설 없이 실행됐다. 구조적으로 막는다
+        if not (self.hypothesis or "").strip():
+            raise ValueError(
+                f"{self.task_id}: 가설 문장이 비어 있다. 검증할 가설 없이 과제를 "
+                "실행할 수 없다 (DECISION_LOG 2026-08-12 (4)).")
+        if self.specified_pair and not all(
+                lb in self.candidates for lb in self.specified_pair):
+            raise ValueError(
+                f"{self.task_id}: 지정된 쌍 {self.specified_pair} 이 후보에 없다")
 
 
 @dataclass
@@ -74,6 +88,15 @@ class LoopResult:
     ambiguity_flagged: bool
     trace: list[dict[str, Any]] = field(default_factory=list)
     error: str | None = None
+    # ── 식별 오류 추적 (DECISION_LOG 2026-08-12 (5)) ──────────────────
+    # 예전에는 에이전트가 참조 쌍과 «다른» 쌍을 고르면 KeyError 로 죽었고, 식별 실패가
+    # 점수가 아니라 크래시가 되어 지표에서 조용히 빠졌다. 이제 실행을 계속하고
+    # 아래를 분리해 남긴다 — 식별 오류가 downstream 판단에 어떻게 전파됐는지 본다.
+    selected_pair: tuple[str, str] | None = None      # 에이전트가 고른 실제 구조명
+    gold_pair: tuple[str, str] | None = None          # 참조 쌍
+    delta_evidence: float | None = None               # 고른 쌍의 ΔE — 에이전트 «자기 증거»
+    delta_gold_convention: float | None = None        # 참조 부호 규약 ΔE. 식별 오류면 None
+    specified_pair_given: bool = False                # 쌍 지정형이었는가
 
 
 def anonymize(names: list[str], task_id: str) -> tuple[dict[str, str], dict[str, str]]:
@@ -96,8 +119,52 @@ def _tau_block(rtype: str, tau: Tau | None) -> str:
         "어느 쪽이 안정한지 **말할 수 없다.**\n")
 
 
+def _pi_operationalize_paired(be: Backend, spec: TaskSpec, rnd: int,
+                              feedback: str | None) -> dict:
+    """쌍 지정형 — 비교할 두 구조를 명시해 준다 (DECISION_LOG 2026-08-12 (5)).
+
+    이 계열은 어떤 기하 서술로도 두 구조를 특정할 수 없어(`min_precision` = None)
+    자율 식별이 원리적으로 불가능하다. 그래서 식별 부담을 지우지 않고 쌍을 준다.
+    **가설 자체는 그대로 주어지고, 판단(수준 선택·증거 충분성·결론)은 전부 남아 있다.**
+
+    자율 식별형 프롬프트는 이 함수와 무관하다 — 문구를 바꾸지 않았다.
+    """
+    claimed, other = spec.specified_pair
+    cand = "\n".join(f"- **{lab}**: {desc}" for lab, desc in spec.candidates.items())
+    fb = f"\n## 이전 라운드의 지적\n\n{feedback}\n" if feedback else ""
+    prompt = f"""당신은 계산화학 연구팀의 PI다. 아래 가설을 검증 가능한 계산 실험으로 조작화하라.
+
+## 원 가설 (고정 — 바꾸지 않는다)
+
+> {spec.hypothesis}
+
+## 비교할 구조 (지정됨)
+
+이 과제는 비교 대상이 **지정되어 있다.** 기하 서술만으로는 두 구조를 특정할 수 없는
+계열이기 때문이다. 아래 쌍을 그대로 쓴다.
+
+- 가설이 «더 안정하다»고 주장하는 구조: **{claimed}**
+- 비교 대상: **{other}**
+
+## 참고 — 이 화학종의 구조 목록
+
+{cand}
+{fb}
+## 할 일
+
+1. 위에 지정된 쌍을 그대로 반환한다 (`structure_more_stable` = {claimed},
+   `structure_other` = {other})
+2. 이 비교로 원 가설을 검증할 수 있는지, 관측량이 무엇인지 적는다
+3. 지정된 쌍이 가설과 맞지 않는다고 판단되면 `ambiguous=true` 로 표시하고 이유를 적는다"""
+    return be.ask(task_id=spec.task_id, agent_role="PI", round=rnd, prompt=prompt,
+                  schema=schemas.OPERATIONALIZE,
+                  prompt_version=f"{schemas.PROMPT_VERSION}/operationalize_paired")
+
+
 def _pi_operationalize(be: Backend, spec: TaskSpec, rnd: int,
                        feedback: str | None) -> dict:
+    if spec.specified_pair:
+        return _pi_operationalize_paired(be, spec, rnd, feedback)
     cand = "\n".join(f"- **{lab}**: {desc}" for lab, desc in spec.candidates.items())
     fb = f"\n## 이전 라운드의 지적\n\n{feedback}\n" if feedback else ""
     prompt = f"""당신은 계산화학 연구팀의 PI다. 아래 가설을 검증 가능한 계산 실험으로 조작화하라.
@@ -237,8 +304,11 @@ def run_task(be: Backend, spec: TaskSpec, tau: Tau | None) -> LoopResult:
                     return res
                 pair = (a, b)
                 res.identified_pair = pair
+                res.specified_pair_given = bool(spec.specified_pair)
                 res.ambiguity_flagged = res.ambiguity_flagged or bool(op["ambiguous"])
                 if spec.reference_pair:
+                    # 쌍 지정형에서는 «식별을 수행하지 않았다». 여기 값은 지정을 그대로
+                    # 따랐는지의 확인이며, 식별 정확도 지표에는 넣지 않는다(채점기에서 분리)
                     res.identification_correct = (
                         {spec.real_names[a], spec.real_names[b]}
                         == set(spec.reference_pair))
@@ -250,33 +320,53 @@ def run_task(be: Backend, spec: TaskSpec, tau: Tau | None) -> LoopResult:
             res.trace.append({"round": rnd, "step": "choose_level", **lv})
 
             # ③ 실행층 — 결정론적. M_used 는 여기서 기록된다
-            req = cached.CalcRequest(
-                subset=spec.subset,
-                structures=(spec.real_names[pair[0]], spec.real_names[pair[1]]),
-                level=level)
+            sel = (spec.real_names[pair[0]], spec.real_names[pair[1]])
+            req = cached.CalcRequest(subset=spec.subset, structures=sel, level=level)
             out = cached.run(req)
-            # **표시용** — E(pair[0]) − E(pair[1]). 부호 의미를 프롬프트에서 명시한다
-            delta = ((out.energies[spec.real_names[pair[0]]]
-                      - out.energies[spec.real_names[pair[1]]]) * cached.HARTREE)
+            # **표시용 · 에이전트 자기 증거** — E(pair[0]) − E(pair[1]).
+            # pair[0] 은 에이전트가 «더 안정하다»고 지목한 구조이므로, 음수면 자기 증거가
+            # 가설을 지지하는 방향이다. 부호 의미를 프롬프트에서 명시한다
+            delta = (out.energies[sel[0]] - out.energies[sel[1]]) * cached.HARTREE
+            res.selected_pair, res.gold_pair = sel, tuple(spec.ref_names)
+            res.delta_evidence = delta
+
             # **채점용** — 참조값과 같은 규약(ΔE = Σ cᵢ·Eᵢ)이어야 labels 가 맞게 판정한다.
             # 두 규약을 섞으면 부호가 뒤집혀 에이전트의 판단을 잘못 채점한다.
-            delta_scoring = sum(
-                c * out.energies[n] for n, c in zip(spec.ref_names, spec.ref_coeffs)
-            ) * cached.HARTREE
-            res.level_used, res.delta_calc = level, delta_scoring
+            #
+            # 🔴 참조 쌍의 에너지는 «에이전트가 그 쌍을 골랐을 때만» 존재한다. 예전 코드는
+            # 무조건 ref_names 로 조회해서, 식별이 틀리면 KeyError 로 죽었다 —
+            # 식별 실패가 측정되지 않고 사라졌다(DECISION_LOG 2026-08-12 (4)).
+            # 이제 계산하지 못하면 None 으로 두고 실행을 계속한다.
+            if all(n in out.energies for n in spec.ref_names):
+                delta_scoring = sum(
+                    c * out.energies[n]
+                    for n, c in zip(spec.ref_names, spec.ref_coeffs)) * cached.HARTREE
+            else:
+                delta_scoring = None
+            res.delta_gold_convention = delta_scoring
+            # 자기 증거 축(§7.1)은 «고른 쌍»으로 잰다 — 참조값을 쓰지 않는 지표이므로
+            # 식별이 틀려도 정의된다. 결론 정확성은 채점기가 식별 실패로 처리한다.
+            res.level_used = level
+            res.delta_calc = delta_scoring if delta_scoring is not None else delta
             be.ledger.calls[-1].level_selected = level
-            be.ledger.calls[-1].tool_result = {
+            # 식별 오류의 전파를 추적할 수 있도록 축을 분리해 남긴다
+            exec_record = {
                 "level": level,
-                "delta_display_kcal_mol": round(delta, 4),
-                "delta_scoring_kcal_mol": round(delta_scoring, 4),
-                "energies_hartree": {k: out.energies[v]
-                                     for k, v in ((pair[0], spec.real_names[pair[0]]),
-                                                  (pair[1], spec.real_names[pair[1]]))},
+                "selected_pair": list(sel),
+                "gold_pair": list(spec.ref_names),
+                "identification_correct": res.identification_correct,
+                "specified_pair_given": bool(spec.specified_pair),
+                # 에이전트가 실제로 본 숫자 (자기 증거)
+                "delta_evidence_kcal_mol": round(delta, 4),
+                # 참조 부호 규약. 식별이 틀리면 계산할 수 없다
+                "delta_gold_convention_kcal_mol": (
+                    None if delta_scoring is None else round(delta_scoring, 4)),
                 "cost_s": out.cost_s, "qc_ok": out.qc_ok}
-            res.trace.append({"round": rnd, "step": "execute", "level": level,
-                              "delta_display": round(delta, 4),
-                              "delta_scoring": round(delta_scoring, 4),
-                              "cost_s": out.cost_s})
+            be.ledger.calls[-1].tool_result = exec_record | {
+                "energies_hartree": {k: out.energies[v]
+                                     for k, v in ((pair[0], sel[0]),
+                                                  (pair[1], sel[1]))}}
+            res.trace.append({"round": rnd, "step": "execute", **exec_record})
 
             # ④ Skeptical Reviewer
             rv = _reviewer(be, spec, rnd, pair, level, delta, tau,

@@ -52,42 +52,44 @@ REQUIRED_LEDGER_FIELDS = [
 
 
 def pick_smoke_tasks(n: int) -> list[dict]:
-    """main N=92 와 challenge primary 를 제외하고 밴드가 다른 과제를 고른다."""
+    """main N=92 와 challenge primary 를 제외하고 과제를 고른다.
+
+    🔴 **예전 필터가 결함을 가렸다** (DECISION_LOG 2026-08-12 (4)). 이 함수는
+    `hypothesis["neutral"]` 이 있는 것과 `identification=="autonomous"` 인 것만
+    골랐고, 그래서 **가설이 없던 paired 과제 16개를 정확히 배제**하고 있었다.
+    7/7 통과는 결함이 없다는 증거가 아니었다.
+
+    이제 **autonomous 와 paired 를 둘 다 반드시 포함한다.** 검증용 표본이 결함
+    사례를 배제하면 그 검증은 통과할 수밖에 없다.
+    """
     sb = json.loads(STAGE_B.read_text())
     excluded = set(sb["primary_experiment"]["main_benchmark"]["task_ids"])
     excluded |= set(sb["identification_challenge"]["primary"]["task_ids"])
 
-    pool = [t for t in build_pool()
-            if t["tid"] not in excluded
-            and t["identification"] == "autonomous"
-            and t["hypothesis"]["neutral"]]
+    pool = [t for t in build_pool() if t["tid"] not in excluded]
+    auto = [t for t in pool if t["identification"] == "autonomous"]
+    paired = [t for t in pool if t["identification"] == "paired"]
+
     picked, seen = [], set()
-    # 밴드 C 를 반드시 포함한다 — 분기 A(escalation)를 자극하는 유일한 구간이다
+    # 밴드 C 를 먼저 — 분기 A(escalation)를 자극하는 유일한 구간이다
     for band in ("C", "B", "A", "D"):
-        for t in sorted(pool, key=lambda x: (-x["n_candidates"], x["tid"])):
-            if t["band"] == band and t["band"] not in seen:
+        for t in sorted(auto, key=lambda x: (-x["n_candidates"], x["tid"])):
+            if t["band"] == band and band not in seen:
                 picked.append(t)
                 seen.add(band)
                 break
-        if len(picked) >= n:
+        if len(picked) >= max(1, n - 1):
             break
+    # 🔒 paired 를 반드시 하나 넣는다. 이게 Batch 1 을 무효로 만든 경로다
+    if paired:
+        picked = picked[:max(1, n - 1)] + [
+            sorted(paired, key=lambda x: (x["band"], x["tid"]))[0]]
     return picked[:n]
 
 
-def to_spec(entry: dict) -> TaskSpec:
-    task = to_task(entry)
-    rxns = load_reactions(GMTKN, task.subset)
-    smap = species_map(rxns)
-    desc = {x: describe(GMTKN / task.subset / x / "struc.xyz")
-            for x in {y for r in rxns for y in r.names}}
-    members = sorted(x for x in desc if smap[x] == smap[task.names[0]])
-    to_label, from_label = anonymize(members, task.tid)
-    return TaskSpec(
-        task_id=task.tid, subset=task.subset, rtype=task.rtype,
-        hypothesis=entry["hypothesis"]["neutral"],
-        candidates={to_label[m]: phrase(desc[m], "L2") for m in members},
-        real_names=from_label, reference_pair=tuple(task.names),
-        ref_names=task.names, ref_coeffs=task.coeffs)
+# 🔒 spec 생성은 main_run 과 **같은 코드**를 쓴다. 예전에는 smoke 가 자기 사본을
+# 들고 있었고, 그래서 본실행에만 있는 경로(paired)가 smoke 에서 검증되지 않았다.
+from vccl.agents.main_run import to_spec  # noqa: E402,F401
 
 
 def verify(entries, results, ledger) -> dict:
@@ -147,7 +149,55 @@ def verify(entries, results, ledger) -> dict:
                    f"FAILED 과제 {len(failed_tasks)}/{len(results)}"),
         "note": ("재시도가 0건이면 1순위 경로가 전부 성공한 것이다 — 사다리 자체는 "
                  "diagnose_empty.py 로 검증됐다." if not retried else "")}
+
+    # ── Batch 1 무효를 만든 두 결함의 회귀 방지 (2026-08-12 (5)) ──────
+    modes = {e["identification"] for e in entries}
+    checks["8_both_identification_modes"] = {
+        "pass": modes == {"autonomous", "paired"},
+        "detail": f"포함된 식별 모드 {sorted(modes)}",
+        "note": ("🔴 예전 smoke 는 autonomous 만 골라 paired 결함을 못 잡았다."
+                 if modes != {"autonomous", "paired"} else "")}
+
+    no_hyp = [e["tid"] for e in entries
+              if not ((e.get("hypothesis") or {}).get("neutral") or "").strip()]
+    checks["9_every_task_has_hypothesis"] = {
+        "pass": not no_hyp,
+        "detail": f"가설 없는 과제 {no_hyp or '없음'}"}
+
+    probe = _identification_failure_probe()
+    checks["10_identification_error_not_crash"] = {
+        "pass": probe["pass"], "detail": probe["detail"],
+        "note": "LLM 을 부르지 않는 결정론적 프로브다 — 에이전트가 참조 쌍과 다른 "
+                "쌍을 골랐을 때 크래시하지 않고 «오답»으로 채점되는지 본다"}
     return checks
+
+
+def _identification_failure_probe() -> dict:
+    """식별 오류 경로를 강제로 통과시킨다. 실패는 «측정»되어야지 크래시가 아니다.
+
+    실제 LLM 은 시켜도 틀리게 고르지 않을 수 있으므로 스크립트된 백엔드를 쓴다.
+    이 경로가 Batch 1 에서 `KeyError` 로 죽어 식별 실패가 지표에서 사라졌다.
+    """
+    sys.path.insert(0, str(ROOT / "tests"))
+    try:
+        import importlib.util
+        s = importlib.util.spec_from_file_location(
+            "t_pi", ROOT / "tests" / "test_paired_and_identification.py")
+        m = importlib.util.module_from_spec(s)
+        s.loader.exec_module(m)
+        entry, spec, wrong = m._wrong_pair_case()
+        res = run_task(m._ScriptedBackend(wrong), spec, load_tau())
+        row = m.score_run(entry, res, load_tau())
+        ok = (res.error is None and res.identification_correct is False
+              and row["reference_direction_correct"] is False
+              and row["delta_evidence"] is not None
+              and row["delta_gold_convention"] is None)
+        return {"pass": bool(ok),
+                "detail": (f"식별 오류 시 크래시 없음={res.error is None} · "
+                           f"결론 오답 처리={row['reference_direction_correct'] is False} · "
+                           f"자기증거 채점됨={row['delta_evidence'] is not None}")}
+    except Exception as e:  # noqa: BLE001
+        return {"pass": False, "detail": f"프로브 자체가 실패했다: {type(e).__name__}: {e}"}
 
 
 def main():

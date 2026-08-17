@@ -1,0 +1,156 @@
+{
+  "table_id": "T1",
+  "title": "두 조건의 실행 동작",
+  "n_tasks": 92,
+  "conditions": [
+    "V",
+    "V-tau"
+  ],
+  "condition_label": {
+    "V": "V",
+    "V-tau": "V−τ"
+  },
+  "rows": [
+    {
+      "key": "failed",
+      "label": "완료하지 못한 과제 (FAILED)",
+      "display": {
+        "V": "0 / 92",
+        "V-tau": "0 / 92"
+      },
+      "source": "main_run_aggregate.json → rows[조건][*].failed"
+    },
+    {
+      "key": "ident",
+      "label": "자율 식별 정확도",
+      "display": {
+        "V": "76 / 76",
+        "V-tau": "76 / 76"
+      },
+      "source": "rows[조건][*] 중 identification_mode=='autonomous' 의 identification_correct"
+    },
+    {
+      "key": "auto_jr",
+      "label": "— 자율 식별형의 근거가 충분한 결론",
+      "display": {
+        "V": "63 / 76",
+        "V-tau": "46 / 76"
+      },
+      "source": "같은 부분집합의 justified_resolution"
+    },
+    {
+      "key": "paired_jr",
+      "label": "— 쌍 지정형의 근거가 충분한 결론",
+      "display": {
+        "V": "11 / 16",
+        "V-tau": "8 / 16"
+      },
+      "source": "identification_mode=='paired' 부분집합의 justified_resolution"
+    },
+    {
+      "key": "l3_tasks",
+      "label": "최종 판단 수준이 L3인 과제",
+      "display": {
+        "V": "45 / 92",
+        "V-tau": "91 / 92"
+      },
+      "source": "rows[조건][*].used_l3  (= level_used == 'L3' · 최종 판단 수준)"
+    },
+    {
+      "key": "l3_exec",
+      "label": "L3 실행 횟수",
+      "display": {
+        "V": "45",
+        "V-tau": "101"
+      },
+      "source": "rows[조건][*].cost_s 에서 역산한 L3 실행 수 (cost_by_task.csv 와 동일 계산)"
+    },
+    {
+      "key": "branch_a",
+      "label": "경로 A (계산 수준 상향) 사용 횟수",
+      "display": {
+        "V": "45",
+        "V-tau": "22"
+      },
+      "source": "rows[조건][*].branch_a"
+    },
+    {
+      "key": "branch_b",
+      "label": "경로 B (비교 대상 재설정) 사용 횟수",
+      "display": {
+        "V": "1",
+        "V-tau": "11"
+      },
+      "source": "rows[조건][*].branch_b"
+    },
+    {
+      "key": "rounds",
+      "label": "라운드 분포 (1 / 2 / 3)",
+      "display": {
+        "V": "46 / 46 / 0",
+        "V-tau": "66 / 19 / 7"
+      },
+      "source": "rows[조건][*].rounds"
+    }
+  ],
+  "raw": {
+    "V": {
+      "failed": 0,
+      "ident_ok": 76,
+      "ident_n": 76,
+      "auto_jr": 63,
+      "auto_n": 76,
+      "paired_jr": 11,
+      "paired_n": 16,
+      "l3_tasks": 45,
+      "l3_exec": 45,
+      "l3_any_exec_tasks": 45,
+      "branch_a": 45,
+      "branch_b": 1,
+      "rounds": {
+        "1": 46,
+        "2": 46
+      }
+    },
+    "V-tau": {
+      "failed": 0,
+      "ident_ok": 76,
+      "ident_n": 76,
+      "auto_jr": 46,
+      "auto_n": 76,
+      "paired_jr": 8,
+      "paired_n": 16,
+      "l3_tasks": 91,
+      "l3_exec": 101,
+      "l3_any_exec_tasks": 92,
+      "branch_a": 22,
+      "branch_b": 11,
+      "rounds": {
+        "1": 66,
+        "2": 19,
+        "3": 7
+      }
+    }
+  },
+  "execution": {
+    "n_calls": 911,
+    "n_batches": 3,
+    "unparsed": 5,
+    "status_err": 1,
+    "jsonl_bad": 0,
+    "elapsed_s": 13238.0,
+    "err_also_unparsed": 1,
+    "task_failed": 0,
+    "elapsed_min": 220.6
+  },
+  "excluded_metrics": {
+    "hypothesis_fidelity": "§7.2가 규정한 «원 가설 유지의 결정론적 검사»가 구현되지 않았다. 구현은 필드가 비었는지만 보므로 보고하지 않는다 (DECISION_LOG 2026-08-16 (1)).",
+    "protocol_validity": "실행 명세가 미리 계산된 registry 안(계산 수준 2택 × 후보 구조 쌍)에서만 만들어지므로 100%가 구성상 보장된다. 성과 지표로 쓰지 않고 Methods 각주로만 밝힌다."
+  },
+  "frozen": {
+    "frozen_rules_v1.json": "0bfc4cee6a6cf0e087d104610fa83975ca5223ef99381130d301317f84995e8b",
+    "frozen_stage_b_v1.json": "2e80a29588b91bafa646065ab1726d979e611014d31cf0ff6fa961f15eac014b",
+    "execution_order_v1.json": "09f8ea4f4512c392ad75658d5929809549196eaf49e40756b67ab816992a92b0"
+  },
+  "not_repeated_from_figures": "전체 근거가 충분한 결론·p값·계산 비용 %는 그림 3·4에 있으므로 이 표에서 반복하지 않는다."
+}

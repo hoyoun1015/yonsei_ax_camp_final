@@ -132,7 +132,7 @@ PY
 ## 남은 할 일
 
 1. 🟢 **secondary 94 완료** — 94/94 · 신규 FAILED 0/70 · S6 (나) 반영됨.
-   `DECISION_LOG` 2026-08-17 (1). **LOCK은 아직 하지 않았다.**
+   `DECISION_LOG` 2026-08-17 (1). **S1~S8 LOCK 에 포함됐다** (2026-08-17 (2)).
 
 
 2. 🔲 **cross-model replication chunk 3·4** — Claude 주간 quota 회복 후.
@@ -160,5 +160,15 @@ PY
 
 ## git
 
-저장소 https://github.com/hoyoun1015/yonsei_ax_camp_final
+저장소 https://github.com/hoyoun1015/yonsei_ax_camp_final (PUBLIC)
+
+**2026-08-17 전량 푸시 완료.** 08-12~08-17 작업(본실행·식별 챌린지·replication 16/30 ·
+Figure/Table LOCK · DECISION_LOG · paper_logic)이 모두 원격에 올라가 있다.
+작업트리는 깨끗하다.
+
+**README 는 외부 독자용 랜딩 페이지다** (2026-08-17 재구성). 내부 진행 상황·집필 규칙은
+README 가 아니라 이 파일과 `DECISION_LOG` 에 둔다. 재현 상세는 `docs/REPRODUCIBILITY.md`.
+README 를 고칠 때 지켜야 할 것 — 조건 4종 정의 유지, R0 오라클 입력 단서 유지,
+ALL_L3 를 상한이라 쓰지 않기, p 값 8건이 사후 분석이라는 표시 유지,
+주 지표 p = 0.25 를 결과와 같은 자리에 두기, 시스템 이름 확정하지 않기.
 `멘토링_대비_내가_알아야_할것.md` · `연구방향_검토요청.md` 는 의도적으로 git 제외.

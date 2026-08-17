@@ -17,10 +17,22 @@
 | **P_oracle** | 같음 | 그 수준의 «정답 행동»을 그대로 선언 |
 | **ALL_L3** | 전량 L3 | L3 의 `ΔE_calc` 에 충실 |
 
-🔑 **P_faithful 이 실제 V 의 천장이다.** V 는 참조값을 볼 수 없으므로 자기 계산 결과
-이상을 알 수 없다. **P_oracle 은 도달 불가능한 상한**이고, `P_oracle − P_faithful` 이
-곧 **도구 한계(tool-limited)로 잃는 양**이다. 이 둘을 섞으면 "에이전트가 더 잘할 수
-있었다"와 "도구가 못 했다"를 구분할 수 없다.
+🔒 **두 정책은 «천장·상한» 이 아니다** (2026-08-17 정정).
+
+| 정책 | 무엇인가 |
+|---|---|
+| `P_faithful` | 사전에 정의한 **deterministic adaptive reference policy** 하나 |
+| `P_oracle` | 참조 정보를 쓰는 **oracle-informed comparison policy** |
+
+**둘 다 실제 에이전트 성능의 theoretical ceiling / upper bound 가 아니다.**
+근거 — justified resolution 에서 **P_faithful 69 인데 V 는 74 다.** V 는 어느 밴드에서든
+수준을 올릴 수 있어 이 고정 정책의 행동 공간을 벗어난다. 초판이 P_faithful 을 «V 의
+천장» 이라고 부른 것은 그 포함 관계를 확인하지 않은 오류였다
+(`DECISION_LOG` 2026-08-14 (1) 정정 ① · 2026-08-17 (3)).
+
+`P_oracle − P_faithful` 은 **이 두 고정 정책 사이의 차이**이며, 도구 한계로 잃는 양의
+상한을 증명한 값이 아니다. 다만 «에이전트 판단을 고치면 줄일 수 있는 몫» 과 «지금 쓴
+도구·수준에서 줄이기 어려운 몫» 을 갈라 보는 데는 여전히 쓸 수 있다.
 
 `ALL_L3` 는 adaptive 정책의 의미를 재기 위한 대조다 — 같은 점수를 훨씬 비싸게
 얻는다면 adaptive 의 가치는 정확도가 아니라 비용이다.
@@ -118,7 +130,7 @@ def apply_policy(policy: str, task: Task, tau: Tau, d: dict[str, float]) -> Run:
         level = adaptive_level(task, tau)
 
     if policy == "P_oracle":
-        # 그 수준의 정답 행동을 그대로 선언한다 — 도달 불가능한 상한
+        # 그 수준의 «정답 행동» 을 그대로 선언한다 — 참조 정보를 쓰는 비교 정책
         return Run(level, d[level], oracle_action(task, level, tau))
 
     # 나머지는 «자기 증거에 충실» — 참조값을 보지 않는다. 실제 V 가 도달 가능한 경로
@@ -226,8 +238,11 @@ def main():
     P("  ⚠️ 이 감사는 Stage B·scoring·주 지표를 수정하지 않는다. 동결 파일에 쓰지 않는다.")
     P()
     P("  R0          L1 고정 · 규칙 하나 (실측 재현)")
-    P("  P_faithful  A/B→L1 · C→L3 · D→abstain · **자기 증거에 충실** ← 실제 V 의 천장")
-    P("  P_oracle    같은 수준 선택 + 정답 행동 선언  ← 도달 불가능한 상한")
+    P("  P_faithful  A/B→L1 · C→L3 · D→abstain · 자기 증거에 충실")
+    P("              ← 사전 정의한 deterministic adaptive reference policy")
+    P("  P_oracle    같은 수준 선택 + 정답 행동 선언")
+    P("              ← 참조 정보를 쓰는 oracle-informed comparison policy")
+    P("  🔒 둘 다 실제 에이전트 성능의 천장·상한이 아니다 (P_faithful 69 < V 74).")
     P("  ALL_L3      전량 L3 · 자기 증거에 충실")
 
     # ── 표 1 · 지표별 점수와 headroom ─────────────────────────────────
@@ -258,7 +273,7 @@ def main():
                          "P_oracle": v["P_oracle"], "ALL_L3": v["ALL_L3"]}
         flag = "🔴" if hf <= 2 else ("🟡" if hf <= 6 else "🟢")
         P(f"  {flag} {label:<46}{hf:>+8} / {ho:<+4}{100*hf/n:>+9.1f} /{100*ho/n:>+6.1f}")
-    P("\n  왼쪽 = P_faithful (도달 가능) · 오른쪽 = P_oracle (상한)")
+    P("\n  왼쪽 = P_faithful 대비 · 오른쪽 = P_oracle 대비 (둘 다 비교 정책이다)")
     P("  🔴 ≤2과제  🟡 3~6과제  🟢 >6과제")
 
     # ── 표 2 · 밴드 C 가 만드는 headroom ──────────────────────────────
@@ -333,8 +348,9 @@ def main():
                                  ("correct", "agent-limited", "tool-limited",
                                   "compound")))
     P("\n  P_faithful 의 agent-limited 는 «정의상 0» 이다 — 자기 증거에 충실하게")
-    P("  만든 정책이므로. 남는 오류는 전부 tool-limited 이고, 그것이")
-    P("  **에이전트를 아무리 잘 만들어도 줄일 수 없는 몫**이다.")
+    P("  만든 정책이므로. 남는 오류는 전부 tool-limited 로 분류된다 — 현재 사용한")
+    P("  계산 도구와 수준에서 에이전트 판단만 고쳐서는 해결하기 어려운 경우다.")
+    P("  더 높은 수준이나 다른 계산 절차로 줄일 수 있는지는 이 결과만으로 알 수 없다.")
 
     # ── 판정 ──────────────────────────────────────────────────────────
     P(f"\n{'=' * 84}")
@@ -370,10 +386,15 @@ def main():
         "n": n, "per_band": nb,
         "policies": {
             "R0": "L1 고정 · |ΔE_calc| ≤ τ_L1 → ABSTAIN, 아니면 부호",
+            # 🔒 «천장·상한» 으로 쓰지 않는다 (2026-08-17 정정). 디스크의
+            #    oracle_headroom_audit.json 은 정정 전 문구를 그대로 담고 있다 —
+            #    그 파일은 S1~S8 LOCK manifest 의 상류 산출물이라 재생성하지 않았다.
             "P_faithful": ("A/B→L1 · C→L3 · D→L1 후 abstain · 자기 증거에 충실. "
-                           "**참조값을 보지 않으므로 실제 V 가 도달 가능한 천장이다.**"),
-            "P_oracle": ("같은 수준 선택 + 그 수준의 정답 행동 선언. "
-                         "**도달 불가능한 상한** — P_oracle−P_faithful 이 tool-limited 몫."),
+                           "사전에 정의한 deterministic adaptive reference policy 이며 "
+                           "실제 에이전트 성능의 천장이 아니다 (69 < V 74)."),
+            "P_oracle": ("같은 수준 선택 + 그 수준의 정답 행동 선언. 참조 정보를 쓰는 "
+                         "oracle-informed comparison policy 이며 도달 불가능한 상한을 "
+                         "증명한 값이 아니다."),
             "ALL_L3": "전량 L3 · 자기 증거에 충실",
         },
         "metric_families": {k: f for k, _, f in METRICS},

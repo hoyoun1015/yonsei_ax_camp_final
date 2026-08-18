@@ -2002,3 +2002,70 @@ LOCK 산출물 51개 파일 전부 바이트 동일(manifest 재검증 통과), 
 **역사 기록은 소급 수정하지 않았다** — 이 로그, `docs/incidents/`,
 `src/vccl/agents/challenge.py`(primary 24 provenance), 그리고 각 문서의 금지표현
 대응표·정정 이력은 그대로 뒀다.
+
+---
+
+## 2026-08-18 (1) — 📋 provenance: cross-model replication **chunk 3 실행 완료 · VALID**
+
+사전등록 2026-08-14 (2) · 분할 amendment (3) 그대로 실행했다. **설계·코드·프롬프트·
+채점·subset·순서·모델을 하나도 바꾸지 않았다.** 이 항목은 provenance 기록이며
+**새로운 분석이나 통계가 아니다.**
+
+### 실행
+
+| | |
+|---|---|
+| run id | **20260818T084420Z** |
+| path | `experiments/repl_c3_20260818T084420Z_claude-sonnet-4-6` |
+| 모델 · 경로 | `claude-sonnet-4-6` · Antigravity CLI(`agy`) headless · quota 그룹 `claude-gpt` |
+| condition | **V 단독** |
+| 과제 | subset[17~23] 7과제 (밴드 A2 B2 C2 D1) |
+| 실측 | 46호출 · 16.0분 · 870,536 토큰 |
+| quota | 시작 주간 100% · 5시간 100% → 종료 주간 77% · 5시간 30% |
+
+### blind integrity audit (성능 지표를 열지 않고 수행)
+
+```
+Expected              7
+Completed             7/7
+FAILED                0
+Duplicate             0
+Missing               0
+Unexpected rerun      0
+Frozen assignment     PASS   task_ids == 동결 subset[17~23] (순서 포함)
+                             subset sha16 e5fafe10c47cdb6b
+                             stage_a 0bfc4cee… · stage_b 2e80a295… · execution_order 09f8ea4f…
+Model/API route       PASS   원장 46/46 이 claude-sonnet-4-6 · claude-gpt · condition V
+Structured output     PASS   46/46 SUCCESS · parsed=None 0 · 재시도(try2/try3) 0
+                             원장 46줄 파싱실패 0 · row 필수 필드 전량 · row-level error 없음
+Quota/rate-limit      0건
+Chunk 3 validity      VALID  FAILED 0/30 = 0.0% ≤ 무효 기준 5.0%
+```
+
+역할별 호출 PI 16 · ComputationalChemist 15 · SkepticalReviewer 15 · 라운드 {2:6, 3:1}.
+
+### 🔒 blind 유지 — 성능을 보지 않았다
+
+**scientific performance: BLINDED — NOT INSPECTED.** justified resolution · 참조방향 ·
+과대해석 · 과도한 신중 · 밴드별 결과 · 개별 과제 결론 · aggregate · Gemini/R0 대비를
+**하나도 열람하지 않았다.** 감사에서 채점 필드는 **키 존재 여부만** 확인하고 값은 읽지
+않았다. `--report` 는 4개 chunk 전량 완료 전 `SystemExit` 이므로 코드로도 막혀 있다.
+
+### 진행
+
+**valid replication progress = 23/30** (chunk 1 8/8 · chunk 2 8/8 · chunk 3 7/7).
+무효 1차 시도(`repl_h1_*`)는 종전대로 provenance 로만 보존하며 이 집계에 넣지 않는다.
+
+**Chunk 4 = NOT RUN.** 이번 세션에서 실행하지 않았다 (`experiments/repl_c4_*` 없음).
+**chunk 4(subset[24~30] 7과제)는 다음 충분한 5시간 usage window 이후 별도 실행한다** —
+실행 규약 2026-08-14 (3)의 «Claude 5시간 ≥ 90% 에서 시작»을 그대로 따른다. 마지막
+chunk 가 창 중간에 소진되어 1차 시도처럼 무효가 되는 것을 피하기 위한 것이며,
+**남은 quota 가 충분해 보여도 같은 창에서 이어 돌리지 않는다.**
+
+### 변경하지 않은 것
+
+LOCK 산출물(Figure F0~F4 · Main Table 1 · Supplementary S1~S8)과 lock manifest ·
+`main_run_aggregate.json` · `r0_baseline.json` · `oracle_headroom_audit.json` ·
+동결본 3종 · README **전부 무변경** (실행 시각 이전 mtime 으로 확인). 이번 실행이
+만든 것은 신규 run 디렉터리 하나뿐이고, 문서 수정은 이 로그와 `RESUME_HERE.md`
+두 개뿐이다.

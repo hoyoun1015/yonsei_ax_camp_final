@@ -1,6 +1,6 @@
 # RESUME_HERE — 세션이 죽으면 이 파일부터 읽는다
 
-**현재 시점 2026-08-16 · 마감 9/2**
+**현재 시점 2026-08-18 · 마감 9/2**
 
 이 파일에는 **지금 상태만** 적는다. 과거 이력(무효 배치, 수정 전 설계, 지난 계획,
 디버깅 기록)은 **여기서 반복하지 않고 `docs/DECISION_LOG.md`** 를 본다.
@@ -11,7 +11,8 @@
 
 **본실행 N=92 확증 완료. Figure F0~F4 LOCK · Main Table 1 LOCK.** 지금은 식별
 챌린지 secondary 94(post-hoc 탐색적)는 완료돼 S6 (나)에 반영됐고, cross-model replication은
-절반(16/30)에서 quota 대기 중이다. 본문 집필은 승인 전 시작하지 않는다.
+**23/30**(chunk 1·2·3 VALID)에서 chunk 4 만 남았다. **성능은 전량 완료 전까지 열람하지
+않는다 — 지금도 BLINDED 다.** 본문 집필은 승인 전 시작하지 않는다.
 
 | 단계 | 상태 |
 |---|---|
@@ -21,7 +22,7 @@
 | Main Table 설계 | 🟢 완료 (`paper_logic/table_design.md`) |
 | Main Table 1 제작 | 🟢 **LOCK** (`tables/draft/T1_system.md|.pdf|.png`) |
 | secondary 94 (식별 챌린지) | 🟢 **완료** · 94/94 · post-hoc 탐색적 (S6 (나) 반영) |
-| cross-model replication (sonnet, V 단독, N=30) | 🟡 **16/30** · chunk 3·4 남음 |
+| cross-model replication (sonnet, V 단독, N=30) | 🟡 **23/30** · chunk 4 남음 · 성능 BLINDED |
 | Supplementary Table S1~S8 | 🟢 **LOCK** (2026-08-17) · `tables/supplementary/LOCK_MANIFEST.md` |
 | 본문 집필 | 🔲 승인 전 시작 금지 |
 
@@ -135,7 +136,10 @@ PY
    `DECISION_LOG` 2026-08-17 (1). **S1~S8 LOCK 에 포함됐다** (2026-08-17 (2)).
 
 
-2. 🔲 **cross-model replication chunk 3·4** — Claude 주간 quota 회복 후.
+2. 🔲 **cross-model replication chunk 4** (마지막 7과제) — chunk 3 은 2026-08-18 에
+   **VALID** 로 완료됐다 (7/7 · FAILED 0 · `DECISION_LOG` 2026-08-18 (1)). 진행 **23/30**.
+   chunk 4 는 **다음 충분한 5시간 usage window 이후 별도 실행**한다
+   (실행 규약 `DECISION_LOG` 2026-08-14 (3): Claude 5시간 ≥ 90% 에서 시작).
    사전등록 `DECISION_LOG` 2026-08-14 (2)·(3). **30과제 전량 완료 전 성능 열람 금지**
 3. 🟢 **manuscript-source consistency cleanup 완료** (2026-08-17 · `DECISION_LOG` (3))
    — headroom «천장·상한» 정정 · L0 «우연 수준» 제거 · secondary 94 현재 상태 반영 ·
@@ -164,7 +168,10 @@ PY
 
 **2026-08-17 전량 푸시 완료.** 08-12~08-17 작업(본실행·식별 챌린지·replication 16/30 ·
 Figure/Table LOCK · DECISION_LOG · paper_logic)이 모두 원격에 올라가 있다.
-작업트리는 깨끗하다.
+
+**미푸시 (2026-08-18)** — chunk 3 run 디렉터리
+`experiments/repl_c3_20260818T084420Z_claude-sonnet-4-6/` (untracked) 와
+이 파일·`DECISION_LOG` 의 이번 갱신이 아직 커밋되지 않았다.
 
 **README 는 외부 독자용 랜딩 페이지다** (2026-08-17 재구성). 내부 진행 상황·집필 규칙은
 README 가 아니라 이 파일과 `DECISION_LOG` 에 둔다. 재현 상세는 `docs/REPRODUCIBILITY.md`.

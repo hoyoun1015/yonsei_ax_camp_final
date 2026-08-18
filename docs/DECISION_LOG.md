@@ -2069,3 +2069,133 @@ LOCK 산출물(Figure F0~F4 · Main Table 1 · Supplementary S1~S8)과 lock mani
 동결본 3종 · README **전부 무변경** (실행 시각 이전 mtime 으로 확인). 이번 실행이
 만든 것은 신규 run 디렉터리 하나뿐이고, 문서 수정은 이 로그와 `RESUME_HERE.md`
 두 개뿐이다.
+
+---
+
+## 2026-08-19 (1) — 🔒 cross-model replication **30/30 완료 · unblind · 정본화**
+
+사전등록 2026-08-14 (2) · 분할 amendment (3) 그대로 끝냈다. **설계·코드·프롬프트·
+채점·subset·순서·모델을 하나도 바꾸지 않았고, 새 실험·새 검정·새 지표를 만들지 않았다.**
+
+### ① chunk 4 provenance (마지막 7과제)
+
+| | |
+|---|---|
+| run id | **20260818T155836Z** |
+| path | `experiments/repl_c4_20260818T155836Z_claude-sonnet-4-6` |
+| 모델 · 경로 | `claude-sonnet-4-6` · Antigravity CLI(`agy`) headless · quota 그룹 `claude-gpt` |
+| condition | **V 단독** · subset[24~30] 7과제 (밴드 A4 B1 C2) |
+| 실측 | 46호출 · 15.6분 · 866,836 토큰 · quota 주간 77%→54% · 5시간 100%→31% |
+
+```
+Expected 7 · Completed 7/7 · FAILED 0
+Duplicate 0 · Missing 0 · Unexpected rerun 0
+Frozen assignment  PASS   task_ids == 동결 subset[24~30] (순서 포함) · sha16 e5fafe10c47cdb6b
+Model/API route    PASS   원장 46/46 이 claude-sonnet-4-6 · claude-gpt · condition V
+Structured output  PASS   46/46 SUCCESS · parsed=None 0 · 재시도 0 · 파싱실패 0
+Quota/rate-limit   0건
+→ chunk 4 validity = VALID (FAILED 0/30 = 0.0% ≤ 무효 기준 5.0%)
+```
+
+### ② 전체 30/30 무결성
+
+chunk 1 8/8 · chunk 2 8/8 · chunk 3 7/7 · chunk 4 7/7 = **30/30 · FAILED 0**.
+duplicate 0 · missing 0 · unexpected rerun 0 · **frozen task identity 30/30 PASS**(순서 포함) ·
+밴드 **A10 B7 C8 D5** (사전등록과 동일) · 동결 해시 3종 4개 chunk 전부 일치.
+무효 1차 시도 `repl_h1_*` 는 결과 json 자체가 없고 집계 glob(`repl_c*`)에 잡히지 않아
+**최종 30개 집계에서 완전히 제외**된다.
+
+### ③ 🔒 순서 — blind 를 유지한 채 무결성부터 확인하고 그 뒤에 unblind 했다
+
+chunk 4 실행 → **성능을 열지 않은 blind integrity audit** → 30/30 전량 무결성 확인 →
+**전부 PASS 한 뒤에 처음으로** `--report` 로 unblind. 이 순서를 지킨 근거는 실행 모드가
+성능을 출력하지 않고 `--report` 가 4개 chunk 전량 완료 전 `SystemExit` 이라는 코드 강제다.
+감사 단계에서 채점 필드는 **키 존재 여부만** 확인하고 값을 읽지 않았다.
+
+### ④ 사전 지정 검정 2개 (정확 McNemar · 양측 · α=0.05 · 동일 30과제 paired)
+
+| 동일 30과제 | sonnet V | gemini V | R0 |
+|---|---:|---:|---:|
+| justified resolution | **21** | 25 | 18 |
+| 참조방향 정확도 | 21 | 25 | 18 |
+| 과대해석 (§7.1) | **0** | 0 | 0 |
+| 과도한 신중 | 4 | 0 | 0 |
+| L3 사용 | 18 | 16 | 0 |
+
+| 비교 | 값 | 불일치 (b:c) | p |
+|---|---|---|---|
+| **V_sonnet 대 R0** | 21 대 18 | 5:2 | **0.4531** |
+| **V_sonnet 대 V_gemini** | 21 대 25 | 1:5 | **0.2188** |
+
+**사전 지정된 검정은 이 둘뿐이고, 새 검정·새 post-hoc p 값을 추가하지 않았다.**
+다중비교 보정은 하지 않으며 검정이 2개임을 명시한다.
+
+### ⑤ 사전 정의된 성공 기준 — 방향 하나뿐이었다
+
+실행 **전에** 정해 둔 기준은 *"V_sonnet 의 justified resolution 이 R0 대비 같은
+방향(우위)이면 «패턴이 복제됐다»"* 이고 **통계적 유의성을 조건으로 요구하지 않았다.**
+관측 **21 > 18** 이므로 **방향성 복제 기준은 충족됐다.**
+🔒 **결과를 본 뒤 성공 기준을 바꾸지 않았다.**
+
+### ⑥ 해석 경계 (이보다 강한 표현을 쓰지 않는다)
+
+**말할 수 있다**
+- Sonnet 4.6 에서도 V 가 R0 보다 근거가 충분한 결론을 더 많이 냈다 (21 대 18).
+- 사전 정의한 **방향성 복제 기준은 충족**했다.
+- Sonnet V 에서 **과대해석 0/30** 이 관측됐다.
+- 밴드 C 결과는 main N=92 의 밴드 C 중심 패턴과 **정성적으로 어긋나지 않는다.**
+
+**말할 수 없다**
+- ⛔ *"sonnet 에서도 V 가 R0 보다 **유의하게** 우수했다"* — **p = 0.4531**.
+  고정 문구 — *"방향성 기준은 충족했으나 차이는 통계적으로 유의하지 않았다."*
+- ⛔ *"τ 효과가 모델 간에 복제됐다 / τ grounding 이 모델을 넘어 일반화된다"* —
+  **V−τ 를 실행하지 않았다**(사전등록에 명시). 이번에 확인한 것은
+  **V 시스템 전체의 제한적인 cross-model directional consistency** 다.
+- ⛔ *"독립적 확증" · "완전한 cross-model replication" · "통계적으로 유의한 복제"*.
+- ⛔ **모델 우열** — sonnet 21 대 gemini 25, **p = 0.2188** 은 sonnet 이 못하다는 증명도
+  두 모델이 동등하다는 증명도 아니다. 모델 ranking 연구로 해석하지 않는다.
+- ⛔ *"밴드 C 효과가 유의하게 복제됐다"* — 밴드 C(n=8)는 **descriptive only** 다
+  (sonnet 7/8 · gemini 6/8 · R0 3/8 · sonnet L3 상승 8/8, 검정 없음).
+
+**탐색적·기술 통계 전용** — sonnet 오류 분해(correct 24 · compound 2 · agent-limited 2 ·
+tool-limited 2) · 과도한 신중 4 · 자율 식별 26/26(천장 효과로 분산 없음).
+**이 값들에 새 유의성 검정을 붙이지 않는다.**
+
+**정본 요약 문구 (한국어)**
+> 사전 정의한 방향성 복제 기준은 충족되었다. Sonnet 4.6 에서도 V 는 R0 보다 더 많은
+> 근거 있는 결론을 냈다(21/30 vs 18/30). 다만 이 차이는 통계적으로 유의하지 않았으며
+> (exact McNemar p=0.453), V−τ 조건을 재실행하지 않았으므로 τ 효과 자체의 모델 간
+> 일반화가 검증된 것은 아니다.
+
+**정본 요약 문구 (영어)**
+> The preregistered directional replication criterion was met: under Sonnet 4.6, V produced
+> more justified resolutions than R0 (21/30 vs 18/30). However, the difference was not
+> statistically significant (exact McNemar p=0.453), and because the V−τ condition was not
+> replicated, this experiment does not establish cross-model generalization of the τ
+> ablation effect.
+
+### ⑦ 정본 artifact 신설
+
+`results/cross_model_replication_final.json` — 생성기
+`src/vccl/scoring/replication_final.py` (읽기 전용 · LLM 0회 · `--save` 로만 기록).
+
+**새 표준을 만들지 않았다.** 기존 규약 그대로다 — 실행층은 `src/vccl/agents/`,
+집계 산출물은 `src/vccl/scoring/` 이 만들어 `results/*.json` 하나에 쓰며
+(`aggregate.py` → `main_run_aggregate.json`, `headroom.py` → `oracle_headroom_audit.json`),
+**모든 산출물에 assertion 을 건다**(`plot_data.py` 규약). 지표·검정을 다시 구현하지 않고
+`replication.mcnemar` 와 `rows` 에 기록된 필드를 그대로 쓴다 — 채점을 두 곳에 두면
+갈라지기 때문이다. 담은 것은 **provenance · 동결 N · chunk 경로 · 무결성 ·
+사전등록 결과 · 사전 지정 검정 · 해석 경계** 뿐이고 **새 분석값은 없다**
+(assertion 이 unblind 확정값과의 일치를 강제한다).
+
+`replication.py` 는 **수정하지 않았다** — 완료된 실험의 실행 코드다.
+
+### ⑧ 변경하지 않은 것
+
+**LOCK 산출물을 열지 않았다** — Figure F0~F4 · Main Table 1 · Supplementary S1~S8 ·
+`lock_manifest` 무변경(38개 항목 재검증 통과). `main_run_aggregate.json` ·
+`r0_baseline.json` · `oracle_headroom_audit.json` · 동결본 3종 · README 무변경.
+main N=92 재분석·재실행 없음. LLM/API 호출 0회.
+
+🔒 **replication 을 논문 본문·LOCK 산출물에 반영해야 할 일이 생기면 amendment 를 먼저
+기록한다.** 이번 작업은 문서 정본화까지이며 LOCK 을 건드리지 않았다.

@@ -1,6 +1,6 @@
 # RESUME_HERE — 세션이 죽으면 이 파일부터 읽는다
 
-**현재 시점 2026-08-18 · 마감 9/2**
+**현재 시점 2026-08-19 · 마감 9/2**
 
 이 파일에는 **지금 상태만** 적는다. 과거 이력(무효 배치, 수정 전 설계, 지난 계획,
 디버깅 기록)은 **여기서 반복하지 않고 `docs/DECISION_LOG.md`** 를 본다.
@@ -10,9 +10,9 @@
 ## 지금 상태 한 줄
 
 **본실행 N=92 확증 완료. Figure F0~F4 LOCK · Main Table 1 LOCK.** 지금은 식별
-챌린지 secondary 94(post-hoc 탐색적)는 완료돼 S6 (나)에 반영됐고, cross-model replication은
-**23/30**(chunk 1·2·3 VALID)에서 chunk 4 만 남았다. **성능은 전량 완료 전까지 열람하지
-않는다 — 지금도 BLINDED 다.** 본문 집필은 승인 전 시작하지 않는다.
+챌린지 secondary 94(post-hoc 탐색적)는 완료돼 S6 (나)에 반영됐고, cross-model
+replication 도 **30/30 COMPLETE · UNBLINDED** 다. **남은 실험은 없다.**
+본문 집필은 승인 전 시작하지 않는다.
 
 | 단계 | 상태 |
 |---|---|
@@ -22,7 +22,7 @@
 | Main Table 설계 | 🟢 완료 (`paper_logic/table_design.md`) |
 | Main Table 1 제작 | 🟢 **LOCK** (`tables/draft/T1_system.md|.pdf|.png`) |
 | secondary 94 (식별 챌린지) | 🟢 **완료** · 94/94 · post-hoc 탐색적 (S6 (나) 반영) |
-| cross-model replication (sonnet, V 단독, N=30) | 🟡 **23/30** · chunk 4 남음 · 성능 BLINDED |
+| cross-model replication (sonnet, V 단독, N=30) | 🟢 **30/30 COMPLETE · UNBLINDED** · FAILED 0 |
 | Supplementary Table S1~S8 | 🟢 **LOCK** (2026-08-17) · `tables/supplementary/LOCK_MANIFEST.md` |
 | 본문 집필 | 🔲 승인 전 시작 금지 |
 
@@ -67,6 +67,46 @@
   고쳐서는 해결하기 어려웠다는 뜻이며, 더 높은 수준으로 줄일 수 있는지는 알 수 없다.
 - **경로 B는 92과제 중 1회만 쓰였다.** «완전한 closed-loop을 검증했다»고 쓰지 않는다.
   동시에 그것만으로 «단순 fidelity router»라고 규정하지도 않는다.
+
+---
+
+## cross-model replication (sonnet 4.6 · V 단독 · N=30) — 완료
+
+**30/30 · FAILED 0 · UNBLINDED** (2026-08-19). chunk 1 8/8 · 2 8/8 · 3 7/7 · 4 7/7 전부 VALID.
+duplicate 0 · missing 0 · unexpected rerun 0 · frozen task identity 30/30 PASS ·
+밴드 A10 B7 C8 D5. 무효 1차 시도(`repl_h1_*`)는 최종 집계에서 완전히 제외했다.
+**30/30 무결성을 전부 확인한 뒤에 처음 unblind 했다.**
+
+정본 `results/cross_model_replication_final.json` (생성 `src/vccl/scoring/replication_final.py`)
+· provenance `DECISION_LOG` 2026-08-19 (1) · 주장 경계 `paper_logic/new_fol.md` NEW-FOL-18
+
+| 동일 30과제 | sonnet V | gemini V | R0 |
+|---|---:|---:|---:|
+| 근거가 충분한 결론 | **21** | 25 | 18 |
+| 참조방향 정확 | 21 | 25 | 18 |
+| 과대해석 | **0** | 0 | 0 |
+| 과도한 신중 | 4 | 0 | 0 |
+| L3 사용 | 18 | 16 | 0 |
+
+사전 지정 검정 2개 (정확 McNemar · 양측 · α=0.05 · paired) —
+**sonnet 대 R0** 21 대 18 · 불일치 5:2 · **p = 0.4531** ·
+**sonnet 대 gemini** 21 대 25 · 불일치 1:5 · **p = 0.2188**.
+
+**사전 정의된 성공 기준은 방향 하나뿐이었다** — *R0 대비 justified resolution 이 우위인가*.
+21 > 18 이므로 **방향성 복제 기준은 충족됐다.** 그 기준은 **유의성을 요구하지 않았다.**
+
+### 이 결과를 쓸 때 지킬 것
+
+- ⛔ **«sonnet 에서도 유의하게 우수했다»** — 사전 지정 검정이 **p = 0.4531** 로 유의하지 않았다.
+  고정 문구 — *"방향성 기준은 충족했으나 차이는 통계적으로 유의하지 않았다."*
+- ⛔ **«τ 효과가 모델 간에 복제됐다»** — **V−τ 를 실행하지 않았다**(사전등록에 명시).
+  이번에 확인한 것은 **V 시스템 전체의 제한적인 방향성 일관성**이다.
+- ⛔ **«독립적 확증» · «완전한 cross-model replication»** — 30과제 · V 단독 · 단일 실행이다.
+- ⛔ **모델 우열** — sonnet 21 대 gemini 25, **p = 0.2188**. 열세의 증명도 동등의 증명도 아니다.
+- **밴드 C (n=8) 는 기술 통계뿐이다** — sonnet 7/8 · gemini 6/8 · R0 3/8 · sonnet L3 상승 8/8.
+  검정하지 않았다. ⛔ «밴드 C 효과가 유의하게 복제됐다» 로 쓰지 않는다.
+- **오류 분해(correct 24 · compound 2 · agent-limited 2 · tool-limited 2) · 과도한 신중 4 ·
+  자율 식별 26/26 은 탐색적·기술 통계 전용**이다. 새 검정을 붙이지 않는다.
 
 ---
 
@@ -136,11 +176,10 @@ PY
    `DECISION_LOG` 2026-08-17 (1). **S1~S8 LOCK 에 포함됐다** (2026-08-17 (2)).
 
 
-2. 🔲 **cross-model replication chunk 4** (마지막 7과제) — chunk 3 은 2026-08-18 에
-   **VALID** 로 완료됐다 (7/7 · FAILED 0 · `DECISION_LOG` 2026-08-18 (1)). 진행 **23/30**.
-   chunk 4 는 **다음 충분한 5시간 usage window 이후 별도 실행**한다
-   (실행 규약 `DECISION_LOG` 2026-08-14 (3): Claude 5시간 ≥ 90% 에서 시작).
-   사전등록 `DECISION_LOG` 2026-08-14 (2)·(3). **30과제 전량 완료 전 성능 열람 금지**
+2. 🟢 **cross-model replication 완료** — **30/30 · FAILED 0 · UNBLINDED** (2026-08-19).
+   chunk 4 7/7 VALID (`DECISION_LOG` 2026-08-19 (1)). 결과와 주장 경계는 위 절과
+   `results/cross_model_replication_final.json` · NEW-FOL-18 에 있다.
+   **남은 실험 작업은 없다.**
 3. 🟢 **manuscript-source consistency cleanup 완료** (2026-08-17 · `DECISION_LOG` (3))
    — headroom «천장·상한» 정정 · L0 «우연 수준» 제거 · secondary 94 현재 상태 반영 ·
    옛 T/F 번호와 «후보 67건» 격리. **LOCK 산출물·결과 수치 무변경.**
@@ -169,9 +208,11 @@ PY
 **2026-08-17 전량 푸시 완료.** 08-12~08-17 작업(본실행·식별 챌린지·replication 16/30 ·
 Figure/Table LOCK · DECISION_LOG · paper_logic)이 모두 원격에 올라가 있다.
 
-**미푸시 (2026-08-18)** — chunk 3 run 디렉터리
-`experiments/repl_c3_20260818T084420Z_claude-sonnet-4-6/` (untracked) 와
-이 파일·`DECISION_LOG` 의 이번 갱신이 아직 커밋되지 않았다.
+**미푸시 (2026-08-19)** — chunk 4 run 디렉터리
+`experiments/repl_c4_20260818T155836Z_claude-sonnet-4-6/` · 정본
+`results/cross_model_replication_final.json` · 생성기
+`src/vccl/scoring/replication_final.py` · 이 파일 · `DECISION_LOG` ·
+`paper_logic/new_fol.md` 의 이번 갱신이 아직 커밋되지 않았다.
 
 **README 는 외부 독자용 랜딩 페이지다** (2026-08-17 재구성). 내부 진행 상황·집필 규칙은
 README 가 아니라 이 파일과 `DECISION_LOG` 에 둔다. 재현 상세는 `docs/REPRODUCIBILITY.md`.

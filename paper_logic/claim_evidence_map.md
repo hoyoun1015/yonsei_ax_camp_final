@@ -12,7 +12,7 @@
 | # | 명제 (요약) | 실험/benchmark | 수치 | 통계검정 | Figure/Table | reference | 상태 |
 |---|---|---|---|---|---|---|---|
 | **1** | 자연어→양자화학 파이프라인은 기여 아님 | — (문헌) | — | — | 없음 (산문) | ChemCrow 2304.05376 · El Agente Q 2505.02484 · ChemGraph 2506.06363 · FermiLink 2604.03460 | 🟢 |
-| **2** | 선행 채점은 전부 outcome-only | — (문헌) | — | — | **T1** | 위 + MDGym 2605.08941 · ScienceAgentBench 2410.05080 | 🟢 |
+| **2** | 선행 채점은 **다수가** outcome-only — 단 evidential support 를 평가하는 최근 사례가 있다 (StatefulDiscovery, LLM judge) | — (문헌) | — | — | **T1** | 위 + MDGym 2605.08941 · ScienceAgentBench 2410.05080 · StatefulDiscovery 2606.11851 (`gap_analysis.md` §6) | 🟡 범위 한정 |
 | **3** | 앵커는 인식적 실패를 대규모로 보였고 판정을 LLM 으로 했다 | — (문헌, 본문 직접 확인) | 68% non-uptake · 26% belief revision · 626 트레이스 검증 | — | 없음 | **2604.18805** §4.8·H.1 | 🟢 |
 | **4** | 판단보류 선행연구의 임계값은 전부 모델 내부 | — (문헌 + 부재 검색) | — | — | 없음 | AgentAbstain 2607.10059 · Act or Escalate 2604.08588 · 2606.02965 | 🟡 부재 증명 |
 | **5** | τ 는 모델 밖 기준이고 수준의 함수다 | GMTKN55 v2 `b904e46` 8서브셋 · **331구조 224반응 전량** | ISO34 τ_L1 6.902→τ_L3 1.949 (3.5×) · ISOL24 12.190→5.562 · ACONF 0.193→0.065 · 바닥 0.2 | — | **T2** | GMTKN55 (PCCP 19, 32184) · GFN2-xTB (JCTC 15, 1652) · g-xTB · Chem Rev 126, 4189 | 🟢 |

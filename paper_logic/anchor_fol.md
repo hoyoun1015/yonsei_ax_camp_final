@@ -32,6 +32,10 @@
 outcomes."* 우리 쪽 독립 조사도 같은 결론(`선행연구.md` §2: ChemCrow·El Agente Q·
 ChemGraph·MDGym·ScienceAgentBench·ASTABench 전부 outcome-only).
 
+> ⚠️ **여기서 «전부» 는 위에 나열한 여섯 시스템에 한정된 서술이다.** 선행 평가 일반으로
+> 넓히지 않는다 — StatefulDiscovery(2606.11851)는 **evidential support 자체를 평가**한다
+> (`gap_analysis.md` §6 · 정정은 `new_fol.md` NEW-FOL-2).
+
 ### FOL-2 · FOL-1로부터
 **결과 점수는 «맞는 답에 도달했는가»와 «옳게 추론했는가»를 구분하지 못한다.**
 두 사건은 독립적으로 발생할 수 있다 — 틀린 추론으로 맞는 답에 도달하는 것이 가능하다.

@@ -63,6 +63,7 @@ python3 figures/make_figures.py
 python3 src/vccl/scoring/table_data.py
 python3 tables/make_tables.py          # Main Table 1
 python3 tables/make_supp_tables.py     # Supplementary S1~S8
+python3 tables/make_replication_table.py  # Supplementary S9 (cross-model 보조 검증)
 ```
 
 | | |
@@ -81,8 +82,9 @@ python3 tables/make_supp_tables.py     # Supplementary S1~S8
 > ⚠️ **재생성해도 PDF 해시는 달라진다.** matplotlib 이 `/CreationDate` 를 파일에
 > 박기 때문이다. **내용 동일성은 PNG 로 확인한다.**
 
-> 🔒 Figure F0~F4 · Main Table 1 · Supplementary S1~S8 은 LOCK 상태다. 재생성은
-> 동일성 확인용이며, 수치·문구 변경은 amendment 절차를 거친다.
+> 🔒 Figure F0~F4 · Main Table 1 · Supplementary S1~S8 은 LOCK 상태다. **S9 도 LOCK
+> 이지만 S1~S8 manifest 가 아니라 별도 기록(`tables/supplementary/S9_LOCK.md`)을 쓴다.**
+> 재생성은 동일성 확인용이며, 수치·문구 변경은 amendment 절차를 거친다.
 
 ---
 

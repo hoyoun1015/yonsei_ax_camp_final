@@ -29,16 +29,20 @@
 | **15** | **통계적으로 검출된 성능 이득이 밴드 C 에 집중** (⛔ «밴드 C 에만 있다» 금지) | N=92 밴드별 | C(25): V **22** · V−τ **11** · R0 **8** / 비C(67): V 52 vs R0 48 | **주: V vs V−τ 11:0 p=9.8×10⁻⁴** · 보조: V vs R0 15:1 p=5.2×10⁻⁴ · 비C 8:4 **p=0.39 (검출 안 됨 ≠ 효과 0)** | **F3(a)** | `HEADROOM_AUDIT.md` (사전 예측) | 🟢 |
 | **16** | ALL_L3 75개 대비 74개를 30.65% 비용으로 | N=92 + **psi4 실측 wall time** | ALL_L3 19,926.1초 · **V 6,106.6초 30.65%** · **V−τ 27,766.5초 139.35%** · R0 3.7초 · L3 실행 V 45 / V−τ 101 | 없음 (기술 통계) | **F3(b) · T7** | — | 🟢 **plot-ready CSV 생성·assertion 통과** |
 | **17** | τ 제거가 agent-limited 오류를 늘린다 | N=92 오류 분해 | agent-limited **V 4 vs V−τ 20** · tool-limited 10 vs 6 | 없음 → **탐색적** | **T8** | — | 🟡 탐색적 |
-| **18** | ~~모델 간 재현~~ | replication 16/30 **진행 중** | **열람 금지** | — | — | — | ⏳ |
+| **18** | 다른 베이스 모델에서 **사전 정의한 방향성 복제 기준 충족** — 단 유의하지 않다 | cross-model replication `claude-sonnet-4-6` · **V 단독** · **30/30 COMPLETE** · FAILED 0 | sonnet **21/30** vs R0 **18/30** (gemini 25/30) · 과대해석 0/30 | 정확 McNemar 5:2 **p = 0.4531 (유의하지 않음)** · sonnet 대 gemini 1:5 p = 0.2188 | **S9** | — | 🟡 조건부 |
 
 ---
 
 ## 2. Figure / Table 후보 명세 — 🗄️ **옛 초안 (2026-08-13 이전)**
 
 > 🔒 **아래 표는 번호 확정 전의 후보 목록이다. 현재 정본이 아니다.**
-> 현재 정본은 **Figure F0~F4 (LOCK) · Main Table 1 (LOCK) · Supplementary S1~S8 (LOCK)**
+> 현재 정본은 **Figure F0~F4 (LOCK) · Main Table 1 (LOCK) · Supplementary S1~S8
+> (기존 LOCK) · Supplementary S9 — 다른 베이스 모델에서의 보조 검증 (별도 LOCK)**
 > 이며, 정의는 `figures/captions.md` · `paper_logic/table_design.md` §4 ·
-> `tables/supplementary/LOCK_MANIFEST.md` 에 있다.
+> `tables/supplementary/LOCK_MANIFEST.md` (S1~S8) ·
+> `tables/supplementary/S9_LOCK.md` (S9) 에 있다.
+> **S9 는 S1~S8 manifest 에 편입된 것이 아니라 별도 LOCK 기록을 쓴다** — 두 묶음의
+> provenance 구조가 다르므로 «S1~S9» 로 합쳐 부르지 않는다.
 > **본문을 쓸 때 아래 T1~T9 / F1~F4 번호를 그대로 옮기지 않는다.**
 
 **현재 정본 대응**
@@ -47,7 +51,8 @@
 |---|---|
 | **F0~F4** | 시스템 흐름 · Band 정의 · 주 결과 · Band별·비용 · 사례 trajectory |
 | **Main Table 1** | 두 조건의 실행 동작 |
-| **S1~S8** | 검정 요약 · τ · 오류 분해 · 벤치마크 구성 · 계산시간 · 식별 · L0 probe · 사례 전문 |
+| **S1~S8** | 검정 요약 · τ · 오류 분해 · 벤치마크 구성 · 계산시간 · 식별 · L0 probe · 사례 전문 (기존 LOCK) |
+| **S9** | 다른 베이스 모델에서의 보조 검증 (cross-model replication, **별도 LOCK**) |
 
 **옛 후보 목록 (기록용)**
 
@@ -97,8 +102,10 @@
 - 출처: `DECISION_LOG` 2026-08-14 (1)
 
 ### L2 · 단일 모델
-주 결과는 `gemini-3.6-flash-high` 단일 모델. 복제 **진행 중(16/30)** 이며
-**V−τ ablation 은 복제 계획에 없다** → **τ 효과의 모델 간 일반화를 주장할 수 없다.**
+주 결과는 `gemini-3.6-flash-high` 단일 모델. 복제는 **30/30 완료**(sonnet 4.6 · V 단독)이고
+**사전 정의한 방향성 기준은 충족**됐으나(21 vs R0 18) **유의하지 않았다**(p = 0.4531).
+**V−τ ablation 은 복제 계획에 없었고 실행하지 않았다** →
+**τ 효과의 모델 간 일반화를 주장할 수 없다.** (NEW-FOL-18 · S9)
 
 ### L3 · 단일 관측량 · 2수준 사다리
 ΔE 전자에너지만. ΔG·용매화·열역학 보정 미포함. 계산 수준 L1(GFN2-xTB) · L3(B3LYP-D3(BJ)/

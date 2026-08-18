@@ -24,6 +24,7 @@ replication 도 **30/30 COMPLETE · UNBLINDED** 다. **남은 실험은 없다.*
 | secondary 94 (식별 챌린지) | 🟢 **완료** · 94/94 · post-hoc 탐색적 (S6 (나) 반영) |
 | cross-model replication (sonnet, V 단독, N=30) | 🟢 **30/30 COMPLETE · UNBLINDED** · FAILED 0 |
 | Supplementary Table S1~S8 | 🟢 **LOCK** (2026-08-17) · `tables/supplementary/LOCK_MANIFEST.md` |
+| Supplementary Table S9 (cross-model 보조 검증) | 🟢 **별도 LOCK** · `tables/supplementary/S9_LOCK.md` |
 | 본문 집필 | 🔲 승인 전 시작 금지 |
 
 ---
@@ -163,7 +164,7 @@ PY
 | `paper_logic/table_design.md` | **Main Table 설계 (최신)** |
 | `figures/captions.md` | Figure 설명문 (LOCK) |
 | `tables/draft/T1_system.md` | Main Table 1 (LOCK) |
-| `tables/supplementary/` | 보충자료 표 S1~S8 (LOCK 전) |
+| `tables/supplementary/` | 보충자료 표 S1~S8 (LOCK · `LOCK_MANIFEST.md`) · S9 (별도 LOCK · `S9_LOCK.md`) |
 | `docs/incidents/` | 사고 원본 증거 (`DECISION_LOG` 2026-08-16 (4)) |
 | `docs/DECISION_LOG.md` | **모든 결정·정정 이력. 과거 상태는 여기서 본다** |
 | `docs/HEADROOM_AUDIT.md` | 본실행 전 audit (⚠️ 문서 상단의 정정 표시를 먼저 읽을 것) |

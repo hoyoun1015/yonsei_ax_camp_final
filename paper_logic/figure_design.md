@@ -2,9 +2,10 @@
 
 > 🗄️ **이 문서는 Figure 확정 «전» 의 설계 기록이다. 현재 정본이 아니다.**
 > 현재 Figure 는 **F0~F4 로 LOCK** 돼 있고 내용·caption·이미지는
-> `figures/captions.md` 와 `figures/draft/` 가 정본이다. 표는 **Main Table 1 (LOCK)** 과
-> **Supplementary S1~S8 (LOCK)** 이 정본이며 `paper_logic/table_design.md` §4 와
-> `tables/supplementary/LOCK_MANIFEST.md` 를 본다.
+> `figures/captions.md` 와 `figures/draft/` 가 정본이다. 표는 **Main Table 1 (LOCK)** ·
+> **Supplementary S1~S8 (기존 LOCK)** · **Supplementary S9 (별도 LOCK)** 이 정본이며
+> `paper_logic/table_design.md` §4 · `tables/supplementary/LOCK_MANIFEST.md` (S1~S8) ·
+> `tables/supplementary/S9_LOCK.md` (S9) 를 본다.
 >
 > 아래에 남아 있는 **옛 Supplementary 번호(«신규 S1» 등) · 옛 T1~T9 후보 번호 ·
 > 폐기된 Main Table 후보 · 옛 F1 오염 프로브 figure 후보 · «후보 67건»** 은

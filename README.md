@@ -203,11 +203,20 @@ V와 R0의 차이가 검출되지 않았는데(p = 0.39), 이는 차이가 없�
 | Figure F0~F4 | 🔒 LOCK |
 | Main Table 1 | 🔒 LOCK |
 | Supplementary S1~S8 | 🔒 LOCK |
-| cross-model replication | ⏳ 16 / 30 |
+| Supplementary S9 (다른 베이스 모델 보조 검증) | 🔒 LOCK (S1~S8과 별도 기록) |
+| 다른 베이스 모델 보조 검증 | ✅ 30 / 30 완료 |
 | 논문 본문 | 🔲 미시작 |
 
 `🔒 LOCK` 은 수치·문구를 더 이상 바꾸지 않기로 확정했다는 뜻입니다.
 상세 진행 상황은 [RESUME_HERE.md](RESUME_HERE.md)에 있습니다.
+
+**다른 베이스 모델에서의 보조 검증(30과제, 실패 0).** 같은 시스템을 베이스 모델만 바꿔
+다시 돌렸습니다. 실행 전에 정해 둔 기준은 «규칙 기준선보다 근거가 충분한 결론이 많은가»
+하는 **방향 하나**였고, 그 기준은 충족됐습니다(21/30 대 18/30). **다만 그 차이는
+통계적으로 유의하지 않았고**(p = 0.453), 오차 정보를 뺀 조건은 이 모델에서 돌리지
+않았습니다 — 따라서 **오차 정보의 효과가 모델을 넘어 일반화된다는 주장은 하지 않습니다.**
+주 결과를 대체하거나 확증하는 실험이 아닙니다.
+→ [보충자료 표 S9](tables/supplementary/S9_replication.md)
 
 **시스템 이름은 아직 확정하지 않았습니다.** 코드 네임스페이스에 남아 있는 `vccl`은
 작업명입니다.
@@ -222,6 +231,7 @@ V와 R0의 차이가 검출되지 않았는데(p = 0.39), 이는 차이가 없�
 - [figures/draft/](figures/draft/) — Figure F0~F4 · [설명문](figures/captions.md)
 - [tables/draft/T1_system.md](tables/draft/T1_system.md) — Main Table 1
 - [tables/supplementary/](tables/supplementary/) — 보충자료 표 S1~S8
+- [tables/supplementary/S9_replication.md](tables/supplementary/S9_replication.md) — 표 S9: 다른 베이스 모델에서의 보조 검증
 
 **주장과 근거를 확인하고 싶다면**
 - [paper_logic/new_fol.md](paper_logic/new_fol.md) — 주장 사슬과 각 주장에 붙은 근거·금지 표현
@@ -234,7 +244,8 @@ V와 R0의 차이가 검출되지 않았는데(p = 0.39), 이는 차이가 없�
 
 **직접 재현하고 싶다면**
 - [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) — 환경·실행 명령·코드 구조
-- [tables/supplementary/LOCK_MANIFEST.md](tables/supplementary/LOCK_MANIFEST.md) — LOCK 산출물 sha256 대장
+- [tables/supplementary/LOCK_MANIFEST.md](tables/supplementary/LOCK_MANIFEST.md) — LOCK 산출물 sha256 대장 (S1~S8)
+- [tables/supplementary/S9_LOCK.md](tables/supplementary/S9_LOCK.md) — 표 S9의 별도 LOCK 기록
 
 **현재 개발 상태**
 - [RESUME_HERE.md](RESUME_HERE.md) — 지금 어디까지 왔고 다음에 무엇을 하는지

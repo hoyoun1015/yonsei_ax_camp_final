@@ -251,7 +251,7 @@ V와 R0의 차이가 검출되지 않았는데(p = 0.39), 이는 차이가 없�
 **연구 결정과 정정 이력을 보고 싶다면**
 - [docs/DECISION_LOG.md](docs/DECISION_LOG.md) — 모든 설계 결정·수정·사고 기록 (정정 이력 포함)
 - [docs/D1_실측결과.md](docs/D1_실측결과.md) — τ 실측 전문과 설계 단계 게이트 판정
-- [docs/기획안_v3.md](docs/기획안_v3.md) — 연구 설계
+- [docs/기획안_v3.md](docs/기획안_v3.md) — 2026-08-08 초기 연구 설계 (이후 정정·변경은 [DECISION_LOG](docs/DECISION_LOG.md)와 [new_fol.md](paper_logic/new_fol.md)를 따릅니다)
 
 **직접 재현하고 싶다면**
 - [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) — 환경·실행 명령·코드 구조

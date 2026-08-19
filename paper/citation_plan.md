@@ -71,7 +71,7 @@
 | **C-04** MDGYM | ✅ VERIFIED | ✅ VERIFIED | YES | arXiv 초록 — *"even the strongest agent solves only 21% of easy-level tasks, with less than 10% at higher difficulties"* → **과제 성공률로 채점** |
 | **C-05** ScienceAgentBench | ✅ VERIFIED | ✅ VERIFIED | YES | arXiv 초록 — *"unify the target output … to a self-contained Python program file and employ an array of evaluation metrics to examine the generated programs, execution results, and costs."* |
 | **C-06** Corral (앵커) | ✅ VERIFIED | ✅ VERIFIED | YES | 초록 전문 + Introduction·Results·Discussion·Methods 절 구성 직접 확인 (68% · 26% · 41.4%/1.5% · 2단계 LLM 주석 · 인간 대조 92.6%/95.7%) |
-| **C-07** StatefulDiscovery | ✅ VERIFIED | 🟡 **PARTIAL** | **조건부** | 초록에서 **overinterpretation 정의는 확인**. 그러나 *"claim adjudication 이 LLM judge/rubric 인가"* 는 **초록에 없다**(NOT ADDRESSED). ES/DV LLM judge 세부는 `gap_analysis.md` §6 의 2026-08-14 본문 확인 기록에 근거 → **본문에서 그 세부를 쓰려면 원문 재확인 필요** |
+| **C-07** StatefulDiscovery | ✅ VERIFIED | ✅ **VERIFIED** | YES | **원문 §4.2·§5.2 직접 확인(2026-08-20)** — *"Both metrics are scored on a 1–5 scale using rubric-based LLM judging"* · ES judge 입력 `(claim, evidence, dataset description)` · DV judge 입력 `(claim, dataset description, first-pass analysis)` · *"All LLM-based judges use Gemini-3.1-pro"* · 인간 검증 **지표당 120 claim 층화 표집** · *"Two PhD-level annotators from different institutions"* |
 | **C-08** Correct Answer, Wrong Mechanism | ✅ VERIFIED | ✅ VERIFIED | YES | 초록 — *"we evaluate them as if only the final answer matters"* · *"task outcome, mechanism fidelity, and epistemic honesty must be measured separately."* |
 | **C-09** AgentAbstain | ✅ VERIFIED | ✅ VERIFIED | YES | 초록 — *"the calibrated ability of tool-using LLM agents to recognize when not to act"* · 최고 모델 **59.5% paired accuracy**. ⚠️ **임계값 출처는 초록에 없다** |
 | **C-10** Act or Escalate? | ✅ VERIFIED | ✅ VERIFIED | YES | 초록 — *"an LLM forms a prediction, estimates its probability of being correct, and compares the expected costs of acting and escalating."* |
@@ -91,18 +91,19 @@
 | 축 | 수 |
 |---|---:|
 | **BIB_STATUS = VERIFIED** | **19 / 20** (C-18 제외) |
-| **CLAIM_STATUS = VERIFIED** | **16** |
-| CLAIM_STATUS = PARTIAL | 2 (C-07 · C-17) |
+| **CLAIM_STATUS = VERIFIED** | **17** |
+| CLAIM_STATUS = PARTIAL | 1 (C-17 — 강한 문장은 쓰지 않는다) |
 | CLAIM_STATUS = UNVERIFIED | 1 (C-20) |
 | **USE = NO (미사용)** | **2** (C-18 · C-20) |
 | USE = 선택 (필요할 때만) | 3 (C-11 · C-13 · C-19) |
-| **두 축 모두 VERIFIED — 지금 바로 인용 가능** | **16** |
+| **두 축 모두 VERIFIED — 지금 바로 인용 가능** | **17** |
 
-**집필 전에 해결해야 할 것 — 2건**
-1. **C-07** — StatefulDiscovery 의 ES/DV LLM judge 세부를 본문에 쓰려면 **원문(§3.2–3.3·§4.2) 재확인**.
-   재확인 전에는 **초록이 지지하는 범위(overinterpretation 정의)까지만** 쓴다.
-2. **C-17** — «방법 오차 안이면 순위 주장 불가» 문장을 쓰려면 **원문 확인**.
-   재확인 전에는 «계산화학의 불확실성 정량화를 다룬 리뷰» 수준으로만 인용한다.
+**집필 전에 해결해야 할 것 — 1건**
+- **C-17** — «에너지 차이가 방법 오차보다 작으면 순위를 주장할 수 없다» 같은 **구체적 문장을
+  C-17 에 기대지 않는다.** 필요하면 «계산화학에서 불확실성 정량화를 다룬 리뷰» 수준으로만
+  유지하거나 **최종 원고에서 사용하지 않는다.** 이 항목을 해결하려고 추가 작업을 벌이지 않는다.
+
+*(C-07 은 2026-08-20 원문 §4.2·§5.2 직접 확인으로 해결됐다.)*
 
 ---
 
@@ -113,7 +114,7 @@
 | C-01·C-02·C-03·C-14 | 자연어에서 화학 계산까지 가는 에이전트가 이미 있다 | 각 시스템의 구현과 시연. **채점 방식에 대한 일반 주장은 지지하지 않는다** |
 | C-04·C-05 | 에이전트 평가가 과제 성공률·산출물 대조 중심이다 | **그 두 벤치마크의 채점 방식**까지. 「모든 선행이 그렇다」는 지지하지 않는다 |
 | **C-06** | 인식적 실패가 대규모로 실재하고 결과 기반 평가로 탐지되지 않는다 · 분산 분해에서 스캐폴드 1.5% | 8도메인·25,000+ 실행. **판정은 2단계 LLM 주석**(인간 대조 92.6%/95.7%) |
-| **C-07** | 증거 정당성 자체를 평가하는 최근 사례가 있다 | **초록 범위** — overinterpretation 을 «주장이 그것을 뒷받침하는 분석의 증거 범위를 초과하는 것»으로 정의. **LLM judge 세부는 초록이 지지하지 않는다** |
+| **C-07** | 증거 정당성 자체를 평가하는 최근 사례가 있고, **그 평가는 rubric 기반 LLM judge 로 이뤄지며 인간 annotator 와 대조됐다** | overinterpretation 정의(초록) + **§4.2·§5.2** — ES·DV 를 1–5 rubric LLM judge(Gemini-3.1-pro)로 채점하고, 지표당 120 claim 을 다른 기관 소속 PhD 급 annotator 2인이 같은 rubric 으로 평가해 대조. ⛔ **여기서 더 나아간 주장은 지지하지 않는다** — 「LLM judge 가 부정확하다」 · 「judge 선택 때문에 결과가 달라진다」 · 「우리 방식이 더 정확하다」 |
 | C-08 | 결과가 맞아도 기전이 틀릴 수 있고, 결과만 보는 평가로는 부족하다 | position paper · 세 축(과제 결과·기전 충실도·인식적 정직성) 분리 주장 |
 | **C-09** | 에이전트가 «언제 행동하지 않아야 하는지»를 평가한 벤치마크가 있고 성능이 낮다 | 최고 모델 59.5% paired accuracy. ⚠️ **임계값 출처의 근거로 쓰지 않는다** |
 | **C-10** | 판단 기준을 **모델이 산출한 정답 확률 추정과 기대 비용 비교**로 만든다 | 초록이 직접 진술 |

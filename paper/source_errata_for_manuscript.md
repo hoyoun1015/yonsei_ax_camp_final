@@ -54,15 +54,15 @@
 > 명제를 서술하는 범위**뿐이다. NEW-FOL-4 에 이미 붙어 있는 *"«없다»는 부재 증명이다 —
 > 논문에서는 «우리가 찾은 범위에서는 없었다»로 쓴다"* 라는 단서와 방향이 같다.
 
-### E-4 · StatefulDiscovery 의 판정 방식을 인용할 때
+### E-4 · StatefulDiscovery 의 판정 방식 — ✅ **RESOLVED (2026-08-20)**
 
 | | |
 |---|---|
 | **위치** | `paper_logic/gap_analysis.md` §6 · `paper_logic/anchor_fol.md` |
-| **기존 기록** | ES/DV 를 **LLM judge(Gemini-3.1-pro) 1–5 rubric** 으로 평가 (2026-08-14 본문 직접 확인 기록) |
-| **이번 검증** | **초록에는 그 내용이 없다**(NOT ADDRESSED). 초록이 지지하는 것은 **overinterpretation 의 정의**까지다 |
-| **manuscript 에서** | LLM judge 세부를 본문에 쓰려면 **원문(§3.2–3.3 · §4.2) 을 다시 확인한 뒤** 쓴다. 재확인 전에는 **초록이 지지하는 범위(정의)까지만** 인용한다 |
-| **근거** | `citation_plan.md` **C-07** (CLAIM_STATUS = PARTIAL) |
+| **검증** | **원문 §4.2·§5.2 직접 확인** — *"Both metrics are scored on a 1–5 scale using rubric-based LLM judging"* · ES judge 입력 `(claim, evidence, dataset description)` · DV judge 입력 `(claim, dataset description, first-pass analysis)` · *"All LLM-based judges use Gemini-3.1-pro"* · 인간 검증 **지표당 120 claim 층화 표집** · *"Two PhD-level annotators from different institutions"* |
+| **manuscript 에서 쓸 범위** | *"StatefulDiscovery 는 증거 정당성(ES)과 발견 가치(DV)를 1–5 rubric 기반 LLM judge 로 평가하며, 자동 평가를 인간 annotator 와 대조하였다."* |
+| **금지** | ⛔ 「LLM judge 가 부정확하다」 · ⛔ 「judge 선택 때문에 결과가 달라진다」 · ⛔ 「우리 방식이 더 정확하다」 — **비교 실험이 없다** |
+| **근거** | `citation_plan.md` **C-07** (BIB VERIFIED · CLAIM VERIFIED) |
 
 ---
 
@@ -93,5 +93,5 @@ grep -nE "What Benchmarks Don't Measure|El Agente Q|임계값(을|이) 전부|�
 - [ ] E-1 「What Benchmarks Don't Measure」 0건
 - [ ] E-2 「El Agente Q」 0건
 - [ ] E-3 「임계값이 전부 모델 내부에서」 0건 · C-09/C-11 을 임계값 출처로 인용 0건
-- [ ] E-4 StatefulDiscovery 의 LLM judge 세부를 원문 재확인 없이 쓴 곳 0건
+- [ ] E-4 StatefulDiscovery 서술이 확인된 범위를 넘지 않는가 — 「LLM judge 가 부정확」·「judge 선택 때문에 결과가 달라진다」·「우리 방식이 더 정확」 0건
 - [ ] E-5 「사전등록 주 지표」 0건 · McNemar 언급부에 사후 provenance 표시
